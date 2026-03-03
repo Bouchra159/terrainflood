@@ -1,0 +1,5 @@
+echo "data/" >> .gitignore
+echo "*.tar.gz" >> .gitignore
+git add .gitignore
+git commit -m "ignore large data files"
+git push
