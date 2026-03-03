@@ -1,8 +1,50 @@
-echo "data/" >> .gitignore
-echo "*.tar.gz" >> .gitignore
+cd ~/terrainflood
+
+# overwrite .gitignore with the clean content above
+cat > .gitignore <<'EOF'
+# --- Python / notebooks ---
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+
+# --- Large data / artifacts (DO NOT COMMIT) ---
+datasets/
+data/
+*.tar.gz
+*.tif
+*.tiff
+
+# --- Training outputs (DO NOT COMMIT) ---
+checkpoints/
+logs/
+
+# --- Figures (usually large; keep local only) ---
+figures/
+
+# --- Results (choose ONE behavior below) ---
+
+# Option A (recommended): keep results OUT of git
+results/
+
+# Option B (if you WANT to commit small CSV metrics):
+# results/*
+# !results/*.csv
+# !results/*.json
+EOF
+
 git add .gitignore
-git commit -m "ignore large data files"
-git push
-# ignore large data
+git commit -m "Add clean .gitignore for data and outputs"
+git push origin main
+# ignore big files
 /datasets/
 *.tar.gz
+/checkpoints/
+/results/
+/figures/
+/logs/
+.ipynb_checkpoints/
