@@ -1,0 +1,25 @@
+# ── Core deep learning ────────────────────────────────────────────────────────
+# Install PyTorch WITH CUDA on DKUCC via conda (see environment.yml).
+# The pip index below is for CPU-only local installs / CI only.
+torch>=2.2.0
+torchvision>=0.17.0
+
+# ── Geospatial / raster I/O ───────────────────────────────────────────────────
+# GDAL must be installed at the system / conda level BEFORE rasterio.
+# On DKUCC:  conda install -c conda-forge gdal rasterio
+rasterio>=1.3.6
+
+# ── Google Earth Engine (01_gee_export.py only — not needed on DKUCC) ─────────
+earthengine-api>=0.1.390
+
+# ── Numerics ──────────────────────────────────────────────────────────────────
+numpy>=1.24.0,<2.0.0        # <2.0 avoids breaking API changes in numpy 2.x
+
+# ── Logging / monitoring ──────────────────────────────────────────────────────
+tensorboard>=2.14.0         # CLAUDE.md rule 8: log everything to TensorBoard
+tqdm>=4.65.0
+
+# ── Config & utilities ────────────────────────────────────────────────────────
+pyyaml>=6.0                 # read config.yaml in train/eval scripts
+scipy>=1.11.0               # ECE, reliability diagrams in 07_evaluate.py
+matplotlib>=3.7.0           # plots in 07_evaluate.py

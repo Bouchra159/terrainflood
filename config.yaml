@@ -1,0 +1,65 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# TerrainFlood — Master's Thesis Project Configuration
+# Physics-informed flood mapping: Siamese ResNet-34 + HAND gate + MC Dropout
+#
+# Used by: 04_train.py, 05_uncertainty.py, 06_exposure.py, 07_evaluate.py
+# Read with: import yaml; cfg = yaml.safe_load(open("config.yaml"))
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Data ─────────────────────────────────────────────────────────────────────
+data:
+  # Override on DKUCC with --data_root /work/bd159/KuroSiwo
+  root: data/sen1floods11
+  batch_size: 8
+  num_workers: 4
+  patch_size: 256            # random crop size during training (pixels)
+  pin_memory: true           # set false if running on CPU only
+  oversample: true           # WeightedRandomSampler to handle flood class imbalance
+  permanent_water: include   # include | exclude | flood
+                             # 'include' → treat class 2 as flood (recommended)
+
+# ── Model ─────────────────────────────────────────────────────────────────────
+model:
+  variant: D                 # A | B | C | D  — controls ablation config
+                             #   A: SAR only, no HAND, no UQ
+                             #   B: HAND as extra input band, no gate, no UQ
+                             #   C: HAND gate, no MC Dropout
+                             #   D: HAND gate + MC Dropout  ← full model (thesis)
+  pretrained: true           # use ImageNet-pretrained ResNet-34 encoder weights
+  use_hand_gate: true        # set by variant — do not edit directly
+  hand_as_band: false        # set by variant — do not edit directly
+  use_pop: true              # inject WorldPop at bottleneck
+  dropout_rate: 0.3          # Dropout2d rate in decoder; 0.0 disables MC Dropout
+
+# ── Training ──────────────────────────────────────────────────────────────────
+training:
+  lr: 1.0e-4                 # AdamW learning rate
+  weight_decay: 1.0e-4       # AdamW weight decay
+  epochs: 50
+  early_stopping_patience: 10
+  loss_alpha: 0.5            # 0.5 × BCE  +  0.5 × Dice
+  pos_weight: 10.0           # BCE positive class weight for flood pixels
+  grad_clip: 1.0             # gradient norm clipping (0.0 = disabled)
+  scheduler: cosine          # cosine annealing LR schedule
+  seed: 42
+
+# ── MC Dropout / Uncertainty ──────────────────────────────────────────────────
+mc_dropout:
+  T: 20                      # stochastic forward passes at inference
+  trust_threshold: 0.1       # predictive variance below this = confident pixel
+                             # used in 05_uncertainty.py trust mask
+
+# ── GEE Export (01_gee_export.py — run locally, not on DKUCC) ────────────────
+gee:
+  project: ""                # YOUR GEE cloud project ID — fill before running 01
+  drive_folder: flood_chips
+  scale: 10                  # export resolution in metres (matches Sentinel-1)
+  patch_size: 512
+  format: tfrecord           # tfrecord | geotiff
+
+# ── Paths ─────────────────────────────────────────────────────────────────────
+paths:
+  checkpoints: checkpoints/  # saved .pt files: weights + optimiser + epoch + IoU
+  results: results/          # metrics JSON, flood maps, calibration plots
+  tensorboard: runs/         # TensorBoard event files
+  task_ids: task_ids.json    # GEE export task IDs written by 01_gee_export.py

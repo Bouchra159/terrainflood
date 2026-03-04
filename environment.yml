@@ -1,0 +1,54 @@
+name: terrainflood
+# ─────────────────────────────────────────────────────────────────────────────
+# Conda environment for TerrainFlood — master's thesis project.
+# Tested on DKUCC (SLURM, CUDA 12.1).
+#
+# Create:   conda env create -f environment.yml
+# Activate: conda activate terrainflood
+# Update:   conda env update -f environment.yml --prune
+# ─────────────────────────────────────────────────────────────────────────────
+
+channels:
+  - pytorch          # official PyTorch channel (torch + torchvision)
+  - nvidia           # CUDA toolkit
+  - conda-forge      # rasterio, gdal, and most geo packages live here
+  - defaults
+
+dependencies:
+  - python=3.11
+
+  # ── PyTorch with CUDA 12.1 ────────────────────────────────────────────────
+  # Required for 02_dataset.py and 03_model.py.
+  # pytorch-cuda must match the CUDA driver on DKUCC GPU nodes.
+  # Check with: nvidia-smi  (shows "CUDA Version: X.Y" top-right)
+  - pytorch>=2.2.0
+  - torchvision>=0.17.0
+  - pytorch-cuda=12.1      # change to 11.8 if DKUCC nodes show CUDA 11.x
+
+  # ── Geospatial stack ──────────────────────────────────────────────────────
+  # Install gdal BEFORE rasterio — rasterio links against libgdal at build.
+  # Required for 02_dataset.py (_read_tif) and all future GeoTIFF I/O.
+  - gdal>=3.6.0
+  - rasterio>=1.3.6
+  - proj>=9.0.0            # coordinate reference system transforms
+  - libspatialindex        # required by fiona/geopandas (catalogue.gpkg)
+  - geopandas>=0.14.0      # reading catalogue.gpkg in 07_evaluate.py
+
+  # ── Numerics ──────────────────────────────────────────────────────────────
+  - numpy>=1.24.0,<2.0.0
+  - scipy>=1.11.0
+
+  # ── Config & I/O ─────────────────────────────────────────────────────────
+  - pyyaml>=6.0
+  - tqdm>=4.65.0
+
+  # ── Visualisation / evaluation ────────────────────────────────────────────
+  - matplotlib>=3.7.0
+
+  # ── pip-only packages ─────────────────────────────────────────────────────
+  - pip
+  - pip:
+    # GEE Python API — only used by 01_gee_export.py (run locally, not DKUCC)
+    - earthengine-api>=0.1.390
+    # TensorBoard — CLAUDE.md rule 8: log loss, IoU, ECE per epoch
+    - tensorboard>=2.14.0
