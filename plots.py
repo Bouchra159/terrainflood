@@ -226,7 +226,64 @@ def plot_iou_bar_chart(
 
 
 # ─────────────────────────────────────────────────────────────
-# 5.  Ablation comparison figure
+# 5.  Risk-Coverage curve
+# ─────────────────────────────────────────────────────────────
+
+def plot_risk_coverage_curve(
+    rc_results:       dict | list[dict],
+    out_path:         str,
+    variant_labels:   list[str] | None = None,
+) -> None:
+    """
+    Risk-Coverage curve: sweeps uncertainty threshold τ and at each τ plots
+      X: coverage  = fraction of pixels with variance ≤ τ
+      Y: risk      = 1 − IoU computed only on trusted pixels
+
+    A better model hugs the bottom-right corner (high coverage, low risk).
+    AURC (area under the curve) is annotated; lower AURC is better.
+
+    Args:
+        rc_results:     single dict OR list of dicts from compute_risk_coverage_curve()
+                        Each dict must have keys: coverage, risk, aurc, and optionally label.
+        out_path:       save path
+        variant_labels: optional list of legend labels when comparing multiple variants
+    """
+    if isinstance(rc_results, dict):
+        rc_results = [rc_results]
+
+    colours = ["#2196F3", "#FF9800", "#4CAF50", "#E91E63"]
+    default_labels = ["Model A", "Model B", "Model C", "Model D"]
+
+    fig, ax = plt.subplots(figsize=(7, 5))
+
+    for idx, rc in enumerate(rc_results):
+        coverage = rc["coverage"]
+        risk     = rc["risk"]
+        aurc     = rc["aurc"]
+        label    = (variant_labels or default_labels)[idx] if \
+                   (variant_labels or default_labels) else f"Variant {idx}"
+        colour   = colours[idx % len(colours)]
+
+        ax.plot(coverage, risk, "o-", color=colour, linewidth=2,
+                markersize=3, label=f"{label}  (AURC={aurc:.4f})")
+
+    ax.set_xlabel("Coverage (fraction of trusted pixels)", fontsize=12)
+    ax.set_ylabel("Risk  (1 − IoU on trusted pixels)", fontsize=12)
+    ax.set_title("Risk–Coverage Curve", fontsize=13)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.invert_xaxis()   # standard: high coverage (easy) on left → low coverage on right
+    ax.legend(fontsize=10, loc="upper right")
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  Saved: {out_path}")
+
+
+# ─────────────────────────────────────────────────────────────
+# 6.  Ablation comparison figure
 # ─────────────────────────────────────────────────────────────
 
 def plot_ablation_table(

@@ -188,7 +188,13 @@ class SiameseEncoder(nn.Module):
     flooding = what changed between pre and post.
     """
 
-    def __init__(self, pretrained: bool = True):
+    def __init__(self, pretrained: bool = True, in_channels: int = 2):
+        """
+        Args:
+            pretrained:  use ImageNet-pretrained ResNet-34 weights
+            in_channels: number of input channels per branch.
+                         2 for standard SAR (VV+VH), 3 for Variant B (VV+VH+HAND).
+        """
         super().__init__()
 
         # Load ResNet-34 backbone
@@ -197,15 +203,15 @@ class SiameseEncoder(nn.Module):
         else:
             backbone = resnet34(weights=None)
 
-        # Rebuild stem conv: 3-channel RGB → 2-channel SAR (VV + VH)
-        # We average the 3 RGB weight kernels → 2-channel approximation
-        # This preserves pretrained statistics better than random init
-        orig_weight = backbone.conv1.weight.data   # (64, 3, 7, 7)
-        new_weight  = orig_weight.mean(dim=1, keepdim=True)  # (64, 1, 7, 7)
-        new_weight  = new_weight.repeat(1, 2, 1, 1)          # (64, 2, 7, 7)
+        # Rebuild stem conv to accept in_channels instead of 3-channel RGB.
+        # Average the 3 RGB weight kernels → 1 channel, then repeat.
+        # This preserves pretrained statistics better than random init.
+        orig_weight = backbone.conv1.weight.data          # (64, 3, 7, 7)
+        avg_weight  = orig_weight.mean(dim=1, keepdim=True)  # (64, 1, 7, 7)
+        new_weight  = avg_weight.repeat(1, in_channels, 1, 1)  # (64, C, 7, 7)
 
         backbone.conv1 = nn.Conv2d(
-            2, 64, kernel_size=7, stride=2, padding=3, bias=False
+            in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False
         )
         backbone.conv1.weight = nn.Parameter(new_weight)
 
@@ -265,7 +271,9 @@ class FloodSegmentationModel(nn.Module):
       [3] VH_post
       [4] VV_VH_ratio  (used as extra feature when hand_as_band=False)
       [5] HAND         (used by gate OR as band, depending on config)
-      [6] pop_log      (appended to bottleneck)
+
+    Note: WorldPop is NOT a model input. It is used only in 06_exposure.py
+    post-prediction for population exposure estimation.
     """
 
     def __init__(
@@ -273,28 +281,18 @@ class FloodSegmentationModel(nn.Module):
         pretrained:    bool  = True,
         use_hand_gate: bool  = True,    # Variant C/D vs A/B
         hand_as_band:  bool  = False,   # Variant B only
-        use_pop:       bool  = True,    # include WorldPop band
         dropout_rate:  float = 0.3,     # 0.0 = no MC Dropout
     ):
         super().__init__()
 
         self.use_hand_gate = use_hand_gate
         self.hand_as_band  = hand_as_band
-        self.use_pop       = use_pop
         self.dropout_rate  = dropout_rate
 
         # ── Encoder ─────────────────────────────────────────
-        self.encoder = SiameseEncoder(pretrained=pretrained)
-
-        # ── Bottleneck: optional population injection ────────
-        # Population density (pop_log) is appended at the bottleneck
-        # because it's a coarse signal (100m → resampled) that should
-        # influence high-level decisions, not low-level features
-        bottleneck_extra = 1 if use_pop else 0
-        self.bottleneck_proj = nn.Sequential(
-            ConvBnRelu(512 + bottleneck_extra, 512),
-            ConvBnRelu(512, 512),
-        ) if use_pop else nn.Identity()
+        # Variant B: HAND concatenated onto SAR → 3-channel per branch
+        encoder_in_ch = 3 if (hand_as_band and not use_hand_gate) else 2
+        self.encoder  = SiameseEncoder(pretrained=pretrained, in_channels=encoder_in_ch)
 
         # ── HAND gates (one per decoder level) ──────────────
         # Only created if use_hand_gate=True
@@ -358,9 +356,9 @@ class FloodSegmentationModel(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            x: (B, 7, H, W) input tensor
+            x: (B, 6, H, W) input tensor
                Channels: [VV_pre, VH_pre, VV_post, VH_post,
-                          VV_VH_ratio, HAND, pop_log]
+                          VV_VH_ratio, HAND]
 
         Returns:
             logits: (B, 1, H, W) — raw logits (before sigmoid)
@@ -380,21 +378,11 @@ class FloodSegmentationModel(nn.Module):
             # Note: encoder was built for 2-channel; this path requires
             # retraining with hand_as_band=True from scratch (different model)
 
-        pop  = x[:, 6:7, :, :]    # population log-density
-
         # ── Encoder: feature difference pyramid ─────────────
         # diffs = [diff0, diff1, diff2, diff3, diff4]
         # diff_i shape: see SiameseEncoder.encode_single comments
         diffs = self.encoder(pre, post)
         d0, d1, d2, d3, d4 = diffs   # d4 is bottleneck
-
-        # ── Bottleneck: inject population ───────────────────
-        if self.use_pop:
-            pop_resized = F.interpolate(
-                pop, size=d4.shape[-2:], mode="bilinear", align_corners=False
-            )
-            d4 = torch.cat([d4, pop_resized], dim=1)   # (B, 513, H/32, W/32)
-            d4 = self.bottleneck_proj(d4)               # back to (B, 512, ...)
 
         # ── Decoder with optional HAND gates ────────────────
         # At each level: gate the encoder skip → decoder block
@@ -539,14 +527,10 @@ def build_model(variant: str = "D",
         print(model.count_parameters())
     """
     configs = {
-        "A": dict(use_hand_gate=False, hand_as_band=False,
-                  use_pop=False, dropout_rate=0.0),
-        "B": dict(use_hand_gate=False, hand_as_band=True,
-                  use_pop=False, dropout_rate=0.0),
-        "C": dict(use_hand_gate=True,  hand_as_band=False,
-                  use_pop=True,  dropout_rate=0.0),
-        "D": dict(use_hand_gate=True,  hand_as_band=False,
-                  use_pop=True,  dropout_rate=0.3),
+        "A": dict(use_hand_gate=False, hand_as_band=False, dropout_rate=0.0),
+        "B": dict(use_hand_gate=False, hand_as_band=True,  dropout_rate=0.0),
+        "C": dict(use_hand_gate=True,  hand_as_band=False, dropout_rate=0.0),
+        "D": dict(use_hand_gate=True,  hand_as_band=False, dropout_rate=0.3),
     }
     if variant not in configs:
         raise ValueError(f"Variant must be A/B/C/D, got '{variant}'")
@@ -564,8 +548,8 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}\n")
 
-    # Test all 4 variants
-    batch = torch.randn(2, 7, 256, 256).to(device)
+    # Test all 4 variants — 6-band input (no pop_log)
+    batch = torch.randn(2, 6, 256, 256).to(device)
 
     for variant in ["A", "B", "C", "D"]:
         model = build_model(variant, pretrained=False).to(device)

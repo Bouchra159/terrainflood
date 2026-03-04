@@ -33,6 +33,7 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from scipy.optimize import minimize_scalar
 from tqdm import tqdm
 
 import sys
@@ -98,6 +99,43 @@ def mc_dropout_inference(
             })
 
     return results
+
+
+# ─────────────────────────────────────────────────────────────
+# 1b. Logit collection (single forward pass — for temperature scaling)
+# ─────────────────────────────────────────────────────────────
+
+@torch.no_grad()
+def collect_logits(
+    model:  torch.nn.Module,
+    loader: torch.utils.data.DataLoader,
+    device: torch.device,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Single deterministic forward pass; returns (logits, labels) for all
+    valid pixels concatenated. Used as calibration set for temperature scaling.
+
+    Returns:
+        logits: (N,) float64 — raw model logits (before sigmoid)
+        labels: (N,) float64 — binary ground truth (0/1, -1 excluded)
+    """
+    model.eval()
+    all_logits: list[np.ndarray] = []
+    all_labels: list[np.ndarray] = []
+
+    for batch in tqdm(loader, desc="Collecting logits"):
+        images = batch["image"].to(device)   # (B, 6, H, W)
+        labels = batch["label"]              # (B, H, W)
+
+        logits = model(images).squeeze(1).cpu().numpy()  # (B, H, W)
+
+        for i in range(images.shape[0]):
+            valid = labels[i].numpy() != -1
+            all_logits.append(logits[i][valid].flatten())
+            all_labels.append(labels[i].numpy()[valid].astype(np.float64))
+
+    return np.concatenate(all_logits).astype(np.float64), \
+           np.concatenate(all_labels).astype(np.float64)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -194,6 +232,67 @@ def compute_brier_score(
     probs  = probs[valid].astype(np.float32)
     labels = labels[valid].astype(np.float32)
     return float(np.mean((probs - labels) ** 2))
+
+
+# ─────────────────────────────────────────────────────────────
+# 3b. Temperature scaling
+# ─────────────────────────────────────────────────────────────
+
+def temperature_scale(
+    logits:       np.ndarray,
+    labels:       np.ndarray,
+    ignore_value: int = -1,
+) -> float:
+    """
+    Finds the optimal temperature T that minimises NLL on a calibration set.
+
+    Post-hoc calibration: the model weights are frozen; only T is optimised.
+    Usage after finding T:
+        calibrated_probs = apply_temperature_scaling(logits, T)
+
+    Args:
+        logits:       (N,) raw model logits (before sigmoid)
+        labels:       (N,) binary ground truth (0 or 1)
+        ignore_value: pixels to exclude (default -1)
+
+    Returns:
+        T: optimal temperature scalar in [0.1, 10.0]
+           T > 1 → softer (more uncertain) probabilities → better calibrated
+           T < 1 → sharper (more confident) probabilities
+    """
+    valid  = labels != ignore_value
+    logits = logits[valid].astype(np.float64)
+    labels = labels[valid].astype(np.float64)
+
+    def nll(T: float) -> float:
+        """Negative log-likelihood of binary cross-entropy at temperature T."""
+        scaled = logits / T
+        probs  = 1.0 / (1.0 + np.exp(-scaled))
+        probs  = np.clip(probs, 1e-7, 1.0 - 1e-7)
+        return float(-np.mean(
+            labels * np.log(probs) + (1.0 - labels) * np.log(1.0 - probs)
+        ))
+
+    result = minimize_scalar(nll, bounds=(0.1, 10.0), method="bounded")
+    return float(result.x)
+
+
+def apply_temperature_scaling(
+    logits: np.ndarray,
+    T:      float,
+) -> np.ndarray:
+    """
+    Applies temperature scaling to raw logits. Returns calibrated probabilities.
+
+    Args:
+        logits: (N,) or (H, W) raw model logits
+        T:      temperature from temperature_scale()
+
+    Returns:
+        probs: same shape as logits, float32 in [0, 1]
+    """
+    scaled = logits.astype(np.float64) / T
+    return (1.0 / (1.0 + np.exp(-scaled))).astype(np.float32)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -365,15 +464,36 @@ def run_uncertainty(args):
           f"(best val IoU={ckpt['best_iou']:.4f})\n")
 
     # Data — run on test split (Bolivia OOD)
-    _, _, test_loader = get_dataloaders(
+    _, val_loader, test_loader = get_dataloaders(
         data_root   = args.data_root,
         batch_size  = args.batch_size,
         num_workers = args.num_workers,
     )
 
+    # ── Temperature scaling (optional) ─────────────────────────
+    temperature = 1.0
+    if args.calibrate:
+        print("Finding optimal temperature on val set (Ecuador + Paraguay)...")
+        val_logits, val_labels = collect_logits(model, val_loader, device)
+        temperature = temperature_scale(val_logits, val_labels)
+        print(f"  Optimal temperature T = {temperature:.4f}")
+        temp_path = out_dir / "temperature.json"
+        temp_path.write_text(json.dumps({"temperature": temperature}, indent=2))
+        print(f"  Saved → {temp_path}")
+
     # MC Dropout inference
     results = mc_dropout_inference(model, test_loader, device, T=args.T)
     print(f"\nProcessed {len(results)} chips\n")
+
+    # Apply temperature scaling to mean_prob if calibration was run
+    if args.calibrate and temperature != 1.0:
+        print(f"  Applying temperature scaling (T={temperature:.4f}) to mean_prob...")
+        for r in results:
+            # Recover approximate logits from probabilities via logit transform
+            p = np.clip(r["mean_prob"], 1e-6, 1.0 - 1e-6)
+            approx_logits = np.log(p / (1.0 - p))
+            r["mean_prob_raw"]     = r["mean_prob"].copy()   # save original
+            r["mean_prob"]         = apply_temperature_scaling(approx_logits, temperature)
 
     # Add trust masks
     for r in results:
@@ -386,7 +506,22 @@ def run_uncertainty(args):
     metrics = aggregate_results(results)
 
     print(f"\n{'='*50}")
-    print(f"Overall ECE   : {metrics['overall']['ece']:.4f}  (target < 0.05)")
+    if args.calibrate:
+        # Compute uncalibrated ECE for comparison
+        all_probs_raw = []
+        all_labels_raw = []
+        for r in results:
+            valid = r["label"] != -1
+            raw_p = r.get("mean_prob_raw", r["mean_prob"])
+            all_probs_raw.append(raw_p[valid].flatten())
+            all_labels_raw.append(r["label"][valid].flatten())
+        ece_before, _, _ = compute_ece(
+            np.concatenate(all_probs_raw), np.concatenate(all_labels_raw)
+        )
+        print(f"ECE before calibration : {ece_before:.4f}")
+        print(f"ECE after  calibration : {metrics['overall']['ece']:.4f}  (T={temperature:.4f})")
+    else:
+        print(f"Overall ECE   : {metrics['overall']['ece']:.4f}  (target < 0.05)")
     print(f"Overall Brier : {metrics['overall']['brier']:.4f}")
     print(f"Mean variance : {metrics['overall']['mean_variance']:.4f}")
     print(f"{'='*50}")
@@ -443,6 +578,8 @@ def parse_args():
                    help="Max variance for trusted pixel")
     p.add_argument("--n_maps",       type=int, default=10,
                    help="Number of uncertainty map figures to save")
+    p.add_argument("--calibrate",    action="store_true",
+                   help="Find optimal temperature T on val set and apply to test predictions")
     return p.parse_args()
 
 

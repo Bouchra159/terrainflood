@@ -45,13 +45,14 @@ from typing import Optional
 # ─────────────────────────────────────────────
 NORM_STATS = {
     # band_name: (mean, std)   — in physical units (dB for SAR, metres for HAND)
+    # 6-band model input: [VV_pre, VH_pre, VV_post, VH_post, VV_VH_ratio, HAND]
+    # WorldPop is NOT included here — it is loaded separately into batch["pop"]
     "VV_pre":       (-12.5,  4.5),
     "VH_pre":       (-19.5,  4.5),
     "VV_post":      (-12.5,  4.5),
     "VH_post":      (-19.5,  4.5),
     "VV_VH_ratio":  ( -7.0,  3.0),
     "HAND":         (  5.0, 10.0),   # metres above nearest drainage
-    "pop_log":      (  0.5,  1.2),   # log1p(people/100m²)
 }
 
 # Sen1Floods11 split — Bolivia is ALWAYS test (out-of-distribution)
@@ -303,9 +304,9 @@ class FloodDataset(Dataset):
         label_raw = self._read_tif(s["label_path"])  # (1, H, W)
         label     = self._handle_permanent_water(label_raw)
 
-        # Stack image: 7 channels total
-        # [VV_pre, VH_pre, VV_post, VH_post, ratio, HAND, pop_log]
-        image = np.concatenate([vv_pre, vh_pre, vv_post, vh_post, ratio, hand, pop],
+        # Stack image: 6 channels total (WorldPop excluded from model input)
+        # [VV_pre, VH_pre, VV_post, VH_post, ratio, HAND]
+        image = np.concatenate([vv_pre, vh_pre, vv_post, vh_post, ratio, hand],
                                axis=0).astype(np.float32)
 
         # ── Random crop
@@ -320,9 +321,10 @@ class FloodDataset(Dataset):
         image = np.nan_to_num(image, nan=0.0, posinf=5.0, neginf=-5.0)
 
         return {
-            "image":    torch.from_numpy(image),          # (7, H, W) float32
-            "label":    torch.from_numpy(label[0]).long(), # (H, W)    int64
-            "hand_raw": torch.from_numpy(hand[0]),         # (H, W)    float32 — raw HAND for gate
+            "image":    torch.from_numpy(image),           # (6, H, W) float32
+            "label":    torch.from_numpy(label[0]).long(),  # (H, W)    int64
+            "hand_raw": torch.from_numpy(hand[0]),          # (H, W)    float32 — raw HAND for gate
+            "pop":      torch.from_numpy(pop[0]),           # (H, W)    float32 — WorldPop, for 06_exposure.py only
             "chip_id":  s["chip_id"],
             "event":    s["event"],
         }
@@ -344,16 +346,16 @@ def compute_normalization_stats(data_root: str, split: str = "train") -> dict:
                       augment=False, normalize=False)
 
     band_names = ["VV_pre", "VH_pre", "VV_post", "VH_post",
-                  "VV_VH_ratio", "HAND", "pop_log"]
-    sums  = np.zeros(7)
-    sums2 = np.zeros(7)
+                  "VV_VH_ratio", "HAND"]
+    sums  = np.zeros(6)
+    sums2 = np.zeros(6)
     count = 0
 
     print("Computing normalization statistics...")
     for i, sample in enumerate(ds):
-        img = sample["image"].numpy()  # (7, H, W)
+        img = sample["image"].numpy()  # (6, H, W)
         mask = np.isfinite(img)
-        for b in range(7):
+        for b in range(6):
             valid = img[b][mask[b]]
             sums[b]  += valid.sum()
             sums2[b] += (valid ** 2).sum()
@@ -361,7 +363,7 @@ def compute_normalization_stats(data_root: str, split: str = "train") -> dict:
         if (i+1) % 50 == 0:
             print(f"  Processed {i+1}/{len(ds)} chips")
 
-    n    = count / 7   # per-band count
+    n    = count / 6   # per-band count
     mean = sums  / n
     std  = np.sqrt(sums2/n - mean**2)
 

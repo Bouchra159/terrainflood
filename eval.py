@@ -48,6 +48,7 @@ from plots import (
     plot_coverage_accuracy,
     plot_iou_bar_chart,
     plot_ablation_table,
+    plot_risk_coverage_curve,
 )
 from trust_mask import compute_trust_mask
 
@@ -125,6 +126,87 @@ def compute_segmentation_metrics(
         "recall":    round(recall,    4),
         "accuracy":  round(accuracy,  4),
         "tp": tp, "fp": fp, "fn": fn, "tn": tn,
+    }
+
+
+# ─────────────────────────────────────────────────────────────
+# 1b. Risk-Coverage curve
+# ─────────────────────────────────────────────────────────────
+
+def compute_risk_coverage_curve(
+    probs:        np.ndarray,
+    variance:     np.ndarray,
+    labels:       np.ndarray,
+    n_thresholds: int = 50,
+    ignore_value: int = -1,
+) -> dict:
+    """
+    At each uncertainty threshold τ (swept from 0 → max_variance):
+      coverage = fraction of valid pixels with variance ≤ τ  (trusted)
+      risk     = 1 − IoU computed only on the trusted pixels
+
+    A model with good uncertainty estimates achieves low risk even at high
+    coverage — confident predictions should be correct.
+
+    AURC (area under risk-coverage) summarises the curve; lower = better.
+
+    Args:
+        probs:        (N,) predicted flood probabilities
+        variance:     (N,) predictive variance (from MC Dropout)
+        labels:       (N,) int ground truth (0/1, ignore_value excluded)
+        n_thresholds: number of τ steps
+        ignore_value: label value to skip
+
+    Returns:
+        dict with keys:
+          thresholds : (n_thresholds,) float — variance thresholds used
+          coverage   : (n_thresholds,) float — fraction of trusted pixels
+          risk       : (n_thresholds,) float — 1 − IoU on trusted pixels
+          aurc       : float — area under risk-coverage curve (lower is better)
+    """
+    valid    = labels != ignore_value
+    probs    = probs[valid].astype(np.float32)
+    variance = variance[valid].astype(np.float32)
+    labels   = labels[valid].astype(np.float32)
+
+    max_var    = float(variance.max()) or 1.0
+    thresholds = np.linspace(0.0, max_var, n_thresholds + 1)[1:]  # skip τ=0
+
+    coverages = []
+    risks     = []
+
+    for tau in thresholds:
+        trusted = variance <= tau
+        n_trusted = trusted.sum()
+        if n_trusted == 0:
+            coverages.append(0.0)
+            risks.append(1.0)
+            continue
+
+        cov   = float(n_trusted) / len(probs)
+        preds = (probs[trusted] > 0.5).astype(np.float32)
+        labs  = labels[trusted]
+
+        inter = float(((preds == 1) & (labs == 1)).sum())
+        union = float(((preds == 1) | (labs == 1)).sum())
+        iou   = inter / max(union, 1.0)
+
+        coverages.append(cov)
+        risks.append(1.0 - iou)
+
+    coverages = np.array(coverages)
+    risks     = np.array(risks)
+
+    # AURC via trapezoidal integration
+    # Convention: sort by ascending coverage so trapz integrates correctly
+    order     = np.argsort(coverages)
+    aurc      = float(np.trapz(risks[order], coverages[order]))
+
+    return {
+        "thresholds": thresholds.tolist(),
+        "coverage":   coverages.tolist(),
+        "risk":       risks.tolist(),
+        "aurc":       round(aurc, 4),
     }
 
 
@@ -357,6 +439,27 @@ def run_evaluation(args: argparse.Namespace) -> None:
         results,
         out_path=str(figs_dir / "coverage_accuracy.png"),
     )
+
+    # Risk-Coverage curve
+    all_probs_rc = np.concatenate([
+        r["mean_prob"][r["label"] != -1].flatten() for r in results
+    ])
+    all_vars_rc = np.concatenate([
+        r["variance"][r["label"] != -1].flatten() for r in results
+    ])
+    all_labels_rc = np.concatenate([
+        r["label"][r["label"] != -1].flatten() for r in results
+    ])
+    rc = compute_risk_coverage_curve(all_probs_rc, all_vars_rc, all_labels_rc)
+    plot_risk_coverage_curve(
+        rc,
+        out_path=str(figs_dir / "risk_coverage.png"),
+        variant_labels=[f"Variant {variant}"],
+    )
+    # Save RC data for potential multi-variant overlay in ablation
+    import json as _json
+    (out_dir / "risk_coverage.json").write_text(_json.dumps(rc, indent=2))
+    print(f"  AURC: {rc['aurc']:.4f}  (lower is better)")
 
     # Per-chip flood maps (first N)
     print(f"\nSaving flood maps for first {args.n_maps} chips...")
