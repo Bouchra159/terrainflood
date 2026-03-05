@@ -52,19 +52,32 @@ NORM_STATS = {
     "HAND":         (  5.0, 10.0),
 }
 
-# Sen1Floods11 split — Bolivia is ALWAYS test (out-of-distribution)
+# Sen1Floods11 HandLabeled split — Bolivia is ALWAYS test (out-of-distribution)
+# Full 11-event HandLabeled benchmark (446 chips total):
+#   Train : 364 chips — 9 events
+#   Val   :  67 chips — Paraguay only (standard benchmark split)
+#   Test  :  15 chips — Bolivia OOD holdout
+# Note: Cambodia, Canada, DemRepCongo, Ecuador are in the original SPLIT_MAP
+# but have no HandLabeled chips in the downloaded dataset (kept for completeness).
 SPLIT_MAP = {
+    # ── Test (OOD holdout — never touch) ─────────────────────
     "Bolivia":     "test",
-    "Cambodia":    "train",
-    "Canada":      "train",
-    "DemRepCongo": "train",
-    "Ecuador":     "val",
-    "Ghana":       "train",
-    "India":       "train",
-    "Mekong":      "train",
-    "Nigeria":     "train",
-    "Paraguay":    "val",
-    "Somalia":     "train",
+    # ── Validation ────────────────────────────────────────────
+    "Ecuador":     "val",      # 0 chips in HandLabeled subset
+    "Paraguay":    "val",      # 67 chips
+    # ── Training ──────────────────────────────────────────────
+    "Cambodia":    "train",    # 0 chips in HandLabeled subset
+    "Canada":      "train",    # 0 chips in HandLabeled subset
+    "DemRepCongo": "train",    # 0 chips in HandLabeled subset
+    "Ghana":       "train",    # 53 chips
+    "India":       "train",    # 68 chips
+    "Mekong":      "train",    # 30 chips
+    "Nigeria":     "train",    # 18 chips
+    "Pakistan":    "train",    # 28 chips
+    "Somalia":     "train",    # 26 chips
+    "Spain":       "train",    # 30 chips
+    "Sri-Lanka":   "train",    # 42 chips
+    "USA":         "train",    # 69 chips
 }
 
 # Sen1Floods11 label values
