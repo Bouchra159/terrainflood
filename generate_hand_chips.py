@@ -3,176 +3,240 @@
 generate_hand_chips.py
 ======================
 Generate per-chip HAND (Height Above Nearest Drainage) GeoTIFFs
-for ALL Sen1Floods11 HandLabeled chips.
+for all 446 Sen1Floods11 HandLabeled chips.
 
-What it does:
-  1. For each S1 chip, reads its geographic footprint (bounds + CRS)
-  2. Downloads a SRTM 90m DEM tile from OpenTopography (free, no login)
-  3. Computes HAND using the pysheds hydrological pipeline
-  4. Reprojects + resamples HAND to exactly match the S1 chip geometry
-  5. Saves as data/sen1floods11/hand_chips/{chip_id}_HAND.tif
+DEM source : Copernicus GLO-30 (30 m resolution)
+             Hosted on AWS S3 as public open data — NO API KEY REQUIRED.
+             https://copernicus-dem-30m.s3.amazonaws.com/
 
-Why this matters:
-  HAND (metres above nearest drainage) is the physics prior used by the
-  HAND-gated attention model (Variants C and D). Without real HAND values
-  the gate has no spatial signal, which eliminates the scientific contribution.
+HAND algorithm (pysheds):
+    fill_pits → fill_depressions → resolve_flats
+    → D8 flow direction → HAND
 
-Install required packages (once, on DKUCC login node):
-  conda activate terrainflood
-  pip install pysheds requests
+Output: data/sen1floods11/hand_chips/{chip_id}_HAND.tif
+        Float32, same CRS / pixel grid as the matching S1 chip.
 
-Usage:
-  conda activate terrainflood
-  python generate_hand_chips.py --data_root data/sen1floods11
+Install (once, on DKUCC login node):
+    conda activate terrainflood
+    pip install pysheds requests
 
-  # Resume after interruption (skips already-created chips):
-  python generate_hand_chips.py --data_root data/sen1floods11
+Run (on LOGIN NODE — needs internet; NOT via sbatch):
+    conda activate terrainflood
+    cd ~/terrainflood
+    python generate_hand_chips.py --data_root data/sen1floods11
 
-  # Force regeneration of all chips:
-  python generate_hand_chips.py --data_root data/sen1floods11 --overwrite
+Resume after interruption (skips already-done chips automatically):
+    python generate_hand_chips.py --data_root data/sen1floods11
 
-Expected runtime: ~45-90 minutes for 446 chips (network-bound, not GPU).
-Run on the DKUCC LOGIN NODE (not via sbatch — needs internet access).
+Force redo everything:
+    python generate_hand_chips.py --data_root data/sen1floods11 --overwrite
 """
 
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 import rasterio
 from rasterio.crs import CRS
-from rasterio.transform import from_bounds
+from rasterio.merge import merge as rio_merge
 from rasterio.warp import reproject, Resampling, transform_bounds
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 1.  DEM download  (OpenTopography — free, no API key for SRTM GL3 90 m)
+# 1.  Copernicus GLO-30 tile download  (free, no API key)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def download_srtm_opentopo(
-    west: float, south: float, east: float, north: float,
-    out_path: Path,
-    margin: float = 0.05,
-    max_retries: int = 3,
-) -> None:
-    """
-    Download SRTM GL3 (90 m) DEM from OpenTopography REST API.
+_COG_BASE = "https://copernicus-dem-30m.s3.amazonaws.com"
 
-    Args:
-        west, south, east, north: bounding box in WGS84 degrees
-        out_path: where to save the GeoTIFF
-        margin:   buffer added around the bbox to avoid edge effects in HAND
-        max_retries: number of retry attempts on network failure
+
+def _tile_url(lat_floor: int, lon_floor: int) -> str:
+    """
+    Build the S3 HTTPS URL for a single 1°×1° Copernicus GLO-30 tile.
+
+    Tile naming convention:
+        Copernicus_DSM_COG_10_{NS}{LAT:02d}_00_{EW}{LON:03d}_00_DEM
+    where NS = N/S and EW = E/W based on sign of floor coords.
+    """
+    ns  = "N" if lat_floor >= 0 else "S"
+    ew  = "E" if lon_floor >= 0 else "W"
+    lat = abs(lat_floor)
+    lon = abs(lon_floor)
+    name = f"Copernicus_DSM_COG_10_{ns}{lat:02d}_00_{ew}{lon:03d}_00_DEM"
+    return f"{_COG_BASE}/{name}/{name}.tif"
+
+
+def _tiles_for_bbox(
+    west: float, south: float, east: float, north: float
+) -> List[Tuple[int, int]]:
+    """Return all (lat_floor, lon_floor) tiles that intersect the bbox."""
+    lat_min = int(np.floor(south))
+    lat_max = int(np.floor(north))
+    lon_min = int(np.floor(west))
+    lon_max = int(np.floor(east))
+    return [
+        (lat, lon)
+        for lat in range(lat_min, lat_max + 1)
+        for lon in range(lon_min, lon_max + 1)
+    ]
+
+
+def download_tile(
+    lat_floor: int,
+    lon_floor: int,
+    cache_dir: Path,
+    max_retries: int = 3,
+) -> Path | None:
+    """
+    Download one Copernicus GLO-30 tile to cache_dir.
+    Returns the local path, or None if the tile does not exist
+    (e.g. open ocean tiles are not published).
     """
     import requests
 
-    w = west  - margin
-    s = south - margin
-    e = east  + margin
-    n = north + margin
+    url = _tile_url(lat_floor, lon_floor)
+    fname = url.split("/")[-1]
+    dst = cache_dir / fname
 
-    url = (
-        "https://portal.opentopography.org/API/globaldem"
-        f"?demtype=SRTMGL3"
-        f"&south={s:.5f}&north={n:.5f}"
-        f"&west={w:.5f}&east={e:.5f}"
-        f"&outputFormat=GTiff"
-    )
+    if dst.exists():
+        return dst          # already cached
 
     for attempt in range(1, max_retries + 1):
         try:
-            r = requests.get(url, timeout=90)
-            if r.status_code == 200 and len(r.content) > 1000:
-                out_path.write_bytes(r.content)
-                return
-            else:
-                raise RuntimeError(
-                    f"HTTP {r.status_code}  ({len(r.content)} bytes) — "
-                    f"{r.text[:120]}"
-                )
+            r = requests.get(url, timeout=120)
+            if r.status_code == 200:
+                dst.write_bytes(r.content)
+                return dst
+            if r.status_code == 403:
+                # 403 = tile does not exist (ocean / no data)
+                return None
+            raise RuntimeError(f"HTTP {r.status_code}")
         except Exception as exc:
             if attempt < max_retries:
-                wait = 5 * attempt
-                print(f"    attempt {attempt} failed ({exc}), retrying in {wait}s…")
-                time.sleep(wait)
+                time.sleep(5 * attempt)
             else:
-                raise
+                raise RuntimeError(
+                    f"Failed to download tile lat={lat_floor} lon={lon_floor}: {exc}"
+                )
+    return None
+
+
+def get_dem_for_chip(
+    west: float, south: float, east: float, north: float,
+    cache_dir: Path,
+    margin: float = 0.05,
+) -> Path | None:
+    """
+    Download all Copernicus tiles covering the chip bbox (+ margin),
+    mosaic them if needed, and return a temp GeoTIFF path.
+    Caller is responsible for deleting the returned temp file.
+    Returns None if no land tiles exist (pure ocean chip).
+    """
+    w, s, e, n = west - margin, south - margin, east + margin, north + margin
+    tiles = _tiles_for_bbox(w, s, e, n)
+
+    tile_paths = []
+    for lat, lon in tiles:
+        p = download_tile(lat, lon, cache_dir)
+        if p is not None:
+            tile_paths.append(p)
+
+    if not tile_paths:
+        return None     # no land tiles → pure ocean
+
+    # Single tile: just return it directly (no mosaic needed)
+    if len(tile_paths) == 1:
+        return tile_paths[0]
+
+    # Multiple tiles: mosaic and clip to bbox + margin
+    datasets = [rasterio.open(p) for p in tile_paths]
+    try:
+        mosaic, mosaic_transform = rio_merge(datasets, bounds=(w, s, e, n))
+    finally:
+        for ds in datasets:
+            ds.close()
+
+    # Write mosaic to a temp file
+    tmp = Path(tempfile.mktemp(suffix="_mosaic.tif"))
+    profile = datasets[0].profile.copy()
+    profile.update(
+        height=mosaic.shape[1],
+        width=mosaic.shape[2],
+        transform=mosaic_transform,
+        count=1,
+    )
+    with rasterio.open(tmp, "w", **profile) as dst:
+        dst.write(mosaic[0], 1)
+    return tmp          # caller must unlink this
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 2.  HAND computation  (pysheds pipeline)
+# 2.  HAND computation  (pysheds)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def compute_hand_from_dem(dem_path: Path) -> Tuple[np.ndarray, object, CRS]:
+def compute_hand(dem_path: Path) -> Tuple[np.ndarray, object, CRS]:
     """
     Run the standard HAND pipeline on a GeoTIFF DEM.
 
     Pipeline:
-      fill_pits → fill_depressions → resolve_flats
-      → flow_direction (D8) → hand
+        fill_pits → fill_depressions → resolve_flats
+        → D8 flow direction → HAND (metres above nearest drainage)
 
     Returns:
-        hand_arr  : (H, W) float32 array, values in metres
-        transform : affine transform of the output raster
-        crs       : CRS of the output raster (matches DEM input)
+        hand_arr  : (H, W) float32 clipped to [0, 300] m
+        transform : affine transform of the output array (from rasterio)
+        crs       : CRS of the output array (from rasterio)
     """
     from pysheds.grid import Grid
 
     grid = Grid.from_raster(str(dem_path))
     dem  = grid.read_raster(str(dem_path))
 
-    # Hydrological conditioning
-    pit_filled  = grid.fill_pits(dem)
-    flooded     = grid.fill_depressions(pit_filled)
-    inflated    = grid.resolve_flats(flooded)
-
-    # Flow direction (D8) and HAND
-    fdir = grid.flowdir(inflated)
-    hand = grid.hand(fdir, inflated, inplace=False)
+    pit_filled = grid.fill_pits(dem)
+    flooded    = grid.fill_depressions(pit_filled)
+    inflated   = grid.resolve_flats(flooded)
+    fdir       = grid.flowdir(inflated)
+    hand       = grid.hand(fdir, inflated, inplace=False)
 
     hand_arr = np.asarray(hand, dtype=np.float32)
-    hand_arr = np.nan_to_num(hand_arr, nan=0.0, posinf=100.0, neginf=0.0)
-    hand_arr = np.clip(hand_arr, 0.0, 300.0)   # sensible physical range
+    hand_arr = np.nan_to_num(hand_arr, nan=0.0, posinf=300.0, neginf=0.0)
+    hand_arr = np.clip(hand_arr, 0.0, 300.0)
 
-    # Recover the affine transform from the grid
-    transform = rasterio.transform.from_bounds(
-        grid.bbox[0], grid.bbox[1], grid.bbox[2], grid.bbox[3],
-        hand_arr.shape[1], hand_arr.shape[0],
-    )
-    crs = CRS.from_wkt(grid.crs.to_wkt())
+    # Read CRS and transform from rasterio (authoritative source)
+    with rasterio.open(dem_path) as src:
+        transform = src.transform
+        crs       = src.crs
 
     return hand_arr, transform, crs
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 3.  Reproject + save aligned to the S1 chip
+# 3.  Reproject + save aligned to S1 chip
 # ─────────────────────────────────────────────────────────────────────────────
 
 def save_hand_chip(
     hand_arr: np.ndarray,
     hand_transform,
     hand_crs: CRS,
-    reference_s1: Path,
-    output_path: Path,
+    s1_path: Path,
+    out_path: Path,
 ) -> None:
     """
-    Reproject hand_arr to exactly match the reference S1 chip geometry
-    and write as a single-band float32 GeoTIFF.
+    Reproject hand_arr to exactly match the S1 chip's CRS and pixel grid,
+    then write as a single-band float32 GeoTIFF.
     """
-    with rasterio.open(reference_s1) as ref:
+    with rasterio.open(s1_path) as ref:
         dst_crs       = ref.crs
         dst_transform = ref.transform
-        dst_height    = ref.height
-        dst_width     = ref.width
+        dst_h         = ref.height
+        dst_w         = ref.width
 
-    hand_reproj = np.zeros((dst_height, dst_width), dtype=np.float32)
+    hand_reproj = np.zeros((dst_h, dst_w), dtype=np.float32)
 
     reproject(
         source        = hand_arr,
@@ -182,16 +246,20 @@ def save_hand_chip(
         dst_transform = dst_transform,
         dst_crs       = dst_crs,
         resampling    = Resampling.bilinear,
+        src_nodata    = -9999.0,
+        dst_nodata    = 0.0,
     )
 
+    # Replace nodata fill with 0 (sensible default: assume at drainage level)
+    hand_reproj = np.where(np.isfinite(hand_reproj), hand_reproj, 0.0)
     hand_reproj = np.clip(hand_reproj, 0.0, 300.0)
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     with rasterio.open(
-        output_path, "w",
+        out_path, "w",
         driver    = "GTiff",
-        height    = dst_height,
-        width     = dst_width,
+        height    = dst_h,
+        width     = dst_w,
         count     = 1,
         dtype     = np.float32,
         crs       = dst_crs,
@@ -203,48 +271,55 @@ def save_hand_chip(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4.  Main loop
+# 4.  Main
 # ─────────────────────────────────────────────────────────────────────────────
 
-def main() -> None:
-    ap = argparse.ArgumentParser(
-        description="Generate per-chip HAND GeoTIFFs for Sen1Floods11"
-    )
-    ap.add_argument(
-        "--data_root", type=str, default="data/sen1floods11",
-        help="Root of Sen1Floods11 dataset (same as used in training)"
-    )
-    ap.add_argument(
-        "--overwrite", action="store_true",
-        help="Regenerate chips that already exist (default: skip)"
-    )
-    args = ap.parse_args()
-
-    # ── Check pysheds is installed ────────────────────────────
+def check_imports() -> None:
+    """Exit early with a helpful message if required packages are missing."""
+    missing = []
     try:
         import pysheds  # noqa: F401
     except ImportError:
-        print(
-            "\nERROR: pysheds is not installed.\n"
-            "Install it with:\n"
-            "  pip install pysheds\n"
-            "Then re-run this script.\n"
-        )
-        sys.exit(1)
-
+        missing.append("pysheds")
     try:
         import requests  # noqa: F401
     except ImportError:
+        missing.append("requests")
+    if missing:
         print(
-            "\nERROR: requests is not installed.\n"
-            "Install it with:\n"
-            "  pip install requests\n"
+            f"\nERROR: missing packages: {missing}\n"
+            f"Install with:\n  pip install {' '.join(missing)}\n"
         )
         sys.exit(1)
 
-    data_root = Path(args.data_root)
-    s1_dir    = data_root / "flood_events" / "HandLabeled" / "S1Hand"
-    hand_dir  = data_root / "hand_chips"
+
+def main() -> None:
+    ap = argparse.ArgumentParser(
+        description="Generate per-chip HAND GeoTIFFs from Copernicus GLO-30 DEM"
+    )
+    ap.add_argument(
+        "--data_root", type=str, default="data/sen1floods11",
+        help="Root of Sen1Floods11 dataset",
+    )
+    ap.add_argument(
+        "--overwrite", action="store_true",
+        help="Regenerate chips that already exist (default: skip)",
+    )
+    ap.add_argument(
+        "--margin", type=float, default=0.05,
+        help="WGS84 degree buffer around each chip when downloading DEM (default 0.05°)",
+    )
+    args = ap.parse_args()
+
+    check_imports()
+
+    data_root  = Path(args.data_root)
+    s1_dir     = data_root / "flood_events" / "HandLabeled" / "S1Hand"
+    hand_dir   = data_root / "hand_chips"
+    cache_dir  = data_root / "dem_cache"   # DEM tiles reused across chips
+
+    for d in (hand_dir, cache_dir):
+        d.mkdir(parents=True, exist_ok=True)
 
     if not s1_dir.exists():
         print(f"ERROR: S1 directory not found: {s1_dir}")
@@ -252,18 +327,18 @@ def main() -> None:
 
     s1_files = sorted(s1_dir.glob("*_S1Hand.tif"))
     if not s1_files:
-        print(f"ERROR: No S1Hand.tif files found in {s1_dir}")
+        print(f"ERROR: no *_S1Hand.tif files found in {s1_dir}")
         sys.exit(1)
 
-    hand_dir.mkdir(parents=True, exist_ok=True)
-    print("=" * 62)
-    print("  Generate HAND chips for Sen1Floods11")
-    print(f"  S1 chips found : {len(s1_files)}")
-    print(f"  Output dir     : {hand_dir}")
-    print("=" * 62)
+    print("=" * 64)
+    print("  Generate HAND chips — Copernicus GLO-30  (no API key)")
+    print(f"  S1 chips   : {len(s1_files)}")
+    print(f"  Output     : {hand_dir}")
+    print(f"  DEM cache  : {cache_dir}")
+    print("=" * 64)
 
     ok = err = skip = 0
-    t_start = time.time()
+    t0 = time.time()
 
     for i, s1_path in enumerate(s1_files):
         chip_id  = s1_path.stem.replace("_S1Hand", "")
@@ -275,7 +350,7 @@ def main() -> None:
 
         print(f"\n[{i+1:03d}/{len(s1_files)}] {chip_id}")
 
-        # ── Read chip footprint ───────────────────────────────
+        # ── 1. Read chip footprint in WGS84 ──────────────────
         try:
             with rasterio.open(s1_path) as src:
                 west, south, east, north = transform_bounds(
@@ -288,64 +363,86 @@ def main() -> None:
             err += 1
             continue
 
-        # ── Download SRTM DEM ─────────────────────────────────
-        with tempfile.NamedTemporaryFile(suffix=".tif", delete=False) as f:
-            tmp_dem = Path(f.name)
-
+        # ── 2. Download / mosaic DEM tiles ────────────────────
+        dem_path = None
+        is_mosaic = False
         try:
-            download_srtm_opentopo(west, south, east, north, tmp_dem)
+            dem_path = get_dem_for_chip(
+                west, south, east, north,
+                cache_dir=cache_dir,
+                margin=args.margin,
+            )
+            if dem_path is None:
+                print("  WARN  no land tiles — chip may be over ocean; writing zeros")
+                # Write a zeros chip so the model can still run
+                _write_zero_hand(s1_path, out_path)
+                skip += 1
+                continue
+            # If get_dem_for_chip returned a mosaic temp file, mark for cleanup
+            is_mosaic = "_mosaic" in dem_path.name
         except Exception as exc:
             print(f"  FAIL  DEM download: {exc}")
             err += 1
-            tmp_dem.unlink(missing_ok=True)
             continue
 
-        # ── Compute HAND ──────────────────────────────────────
+        # ── 3. Compute HAND ───────────────────────────────────
         try:
-            hand_arr, hand_transform, hand_crs = compute_hand_from_dem(tmp_dem)
+            hand_arr, hand_transform, hand_crs = compute_hand(dem_path)
         except Exception as exc:
             print(f"  FAIL  HAND compute: {exc}")
             err += 1
-            tmp_dem.unlink(missing_ok=True)
+            if is_mosaic:
+                dem_path.unlink(missing_ok=True)
             continue
         finally:
-            tmp_dem.unlink(missing_ok=True)
+            if is_mosaic and dem_path is not None:
+                dem_path.unlink(missing_ok=True)
 
-        # ── Reproject + save ──────────────────────────────────
+        # ── 4. Reproject + save ───────────────────────────────
         try:
             save_hand_chip(hand_arr, hand_transform, hand_crs, s1_path, out_path)
-            hmin = hand_arr.min()
-            hmax = hand_arr.max()
-            hmean = hand_arr.mean()
             print(
-                f"  OK    HAND range [{hmin:.1f}, {hmax:.1f}] m  "
-                f"mean={hmean:.1f} m  → {out_path.name}"
+                f"  OK    [{hand_arr.min():.1f}, {hand_arr.mean():.1f}, "
+                f"{hand_arr.max():.1f}] m  → {out_path.name}"
             )
             ok += 1
         except Exception as exc:
             print(f"  FAIL  save: {exc}")
             err += 1
 
-    # ── Summary ───────────────────────────────────────────────
-    elapsed = time.time() - t_start
-    print("\n" + "=" * 62)
-    print(f"  Done in {elapsed/60:.1f} min")
+    # ── Summary ───────────────────────────────────────────────────────────────
+    elapsed = time.time() - t0
+    print("\n" + "=" * 64)
+    print(f"  Finished in {elapsed / 60:.1f} min")
     print(f"  Generated : {ok}")
-    print(f"  Skipped   : {skip}  (already existed)")
+    print(f"  Skipped   : {skip}  (already existed / ocean)")
     print(f"  Failed    : {err}")
-    print(f"  Output    : {hand_dir}")
-    print("=" * 62)
+    print(f"  DEM tiles cached in: {cache_dir}")
+    print("=" * 64)
 
+    total_done = ok + skip
     if err > 0:
-        print(f"\n  WARNING: {err} chips failed. Re-run to retry them.")
-        print("  (Already-generated chips will be skipped automatically)")
+        print(f"\n  {err} chips failed — re-run to retry (already-done chips skipped).")
+    if total_done >= len(s1_files) - err:
+        print("\n  All chips complete. Ready to retrain Variants C and D.")
+        print("  Run:")
+        print("    sbatch jobs/train_C.sbatch")
+        print("    sbatch jobs/train_D.sbatch")
 
-    if ok + skip == len(s1_files):
-        print("\n  ALL chips have HAND files. Ready to retrain Variants C and D.")
-    else:
-        missing = len(s1_files) - ok - skip - err
-        if missing > 0:
-            print(f"\n  {missing} chips still missing HAND. Re-run this script.")
+
+def _write_zero_hand(s1_path: Path, out_path: Path) -> None:
+    """Write a zeros HAND chip matching the S1 chip geometry (ocean fallback)."""
+    with rasterio.open(s1_path) as ref:
+        zeros = np.zeros((ref.height, ref.width), dtype=np.float32)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        with rasterio.open(
+            out_path, "w",
+            driver="GTiff", height=ref.height, width=ref.width,
+            count=1, dtype=np.float32,
+            crs=ref.crs, transform=ref.transform,
+            nodata=-9999.0, compress="lzw",
+        ) as dst:
+            dst.write(zeros, 1)
 
 
 if __name__ == "__main__":
