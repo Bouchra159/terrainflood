@@ -1,9 +1,12 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# TerrainFlood — Master's Thesis Project Configuration
+# TerrainFlood-UQ — Master's Thesis Project Configuration
 # Physics-informed flood mapping: Siamese ResNet-34 + HAND gate + MC Dropout
 #
-# Used by: 04_train.py, 05_uncertainty.py, 06_exposure.py, 07_evaluate.py
-# Read with: import yaml; cfg = yaml.safe_load(open("config.yaml"))
+# NOTE: This file is a reference document. All parameters are passed via
+# argparse in train.py / uncertainty.py / eval.py. Edit the argparse defaults
+# or pass flags directly — this file is NOT loaded by any pipeline script.
+#
+# Source files: train.py, uncertainty.py, eval.py, 06_exposure.py
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Data ─────────────────────────────────────────────────────────────────────
@@ -28,7 +31,8 @@ model:
   pretrained: true           # use ImageNet-pretrained ResNet-34 encoder weights
   use_hand_gate: true        # set by variant — do not edit directly
   hand_as_band: false        # set by variant — do not edit directly
-  use_pop: true              # inject WorldPop at bottleneck
+  # NOTE: WorldPop (pop_log) is NOT a model input. It is used only in
+  # 06_exposure.py post-prediction. The model input is 6 bands (see CLAUDE.md).
   dropout_rate: 0.3          # Dropout2d rate in decoder; 0.0 disables MC Dropout
 
 # ── Training ──────────────────────────────────────────────────────────────────
@@ -46,8 +50,9 @@ training:
 # ── MC Dropout / Uncertainty ──────────────────────────────────────────────────
 mc_dropout:
   T: 20                      # stochastic forward passes at inference
-  trust_threshold: 0.1       # predictive variance below this = confident pixel
-                             # used in 05_uncertainty.py trust mask
+  trust_threshold: 0.05      # predictive variance below this = confident pixel
+                             # used in uncertainty.py + eval.py trust mask
+                             # 0.05 = ±0.22 std dev in flood probability
 
 # ── GEE Export (01_gee_export.py — run locally, not on DKUCC) ────────────────
 gee:

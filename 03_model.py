@@ -343,7 +343,7 @@ class FloodSegmentationModel(nn.Module):
                       target_size: tuple) -> torch.Tensor:
         """
         Extracts HAND channel from input tensor and resizes to target_size.
-        HAND is channel index 5 in our 7-band input stack.
+        HAND is channel index 5 in our 6-band input stack.
         """
         hand = x[:, 5:6, :, :]   # (B, 1, H, W)
         if hand.shape[-2:] != target_size:

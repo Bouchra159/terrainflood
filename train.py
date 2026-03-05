@@ -182,7 +182,7 @@ def train_epoch(
         if fast_dev and i >= 2:
             break
 
-        images = batch["image"].to(device)   # (B, 7, H, W)
+        images = batch["image"].to(device)   # (B, 6, H, W)
         labels = batch["label"].to(device)   # (B, H, W)
 
         optimizer.zero_grad()
@@ -344,7 +344,7 @@ def train(args: argparse.Namespace) -> None:
             fast_dev=args.fast_dev_run,
         )
 
-        lr_now = scheduler.get_last_lr()[0]
+        lr_now = optimizer.param_groups[0]["lr"]   # current LR before stepping
         scheduler.step()
 
         print(f"  Train  loss={train_metrics['loss']:.4f}  iou={train_metrics['iou']:.4f}")

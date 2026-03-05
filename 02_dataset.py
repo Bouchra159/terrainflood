@@ -411,8 +411,12 @@ def get_dataloaders(
             try:
                 with rasterio.open(s["label_path"]) as src:
                     label = src.read(1)
-                has_flood = int((label == LABEL_FLOOD).any())
-                weights.append(2.0 if has_flood else 1.0)
+                valid = label[label != LABEL_IGNORE]
+                flood_frac = float((valid == LABEL_FLOOD).mean()) if valid.size > 0 else 0.0
+                # Weight proportional to flood content: chips richer in flood pixels
+                # are sampled more often. Floor of 1.0 ensures all chips are seen.
+                # Multiplier of 20 calibrated so a 5%-flood chip gets weight ~2.0.
+                weights.append(1.0 + flood_frac * 20.0)
             except Exception:
                 weights.append(1.0)
 

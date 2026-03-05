@@ -37,9 +37,27 @@ from scipy.optimize import minimize_scalar
 from tqdm import tqdm
 
 import sys
-sys.path.append(str(Path(__file__).parent))
-from model import build_model
-from dataset import get_dataloaders
+import importlib.util
+
+_unc_root = Path(__file__).parent
+
+
+def _import_module(alias: str, file_path: str):
+    """Load a Python file with a numeric prefix as a named module."""
+    spec = importlib.util.spec_from_file_location(alias, file_path)
+    mod  = importlib.util.module_from_spec(spec)
+    sys.modules[alias] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+if "model"   not in sys.modules:
+    _import_module("model",   str(_unc_root / "03_model.py"))
+if "dataset" not in sys.modules:
+    _import_module("dataset", str(_unc_root / "02_dataset.py"))
+
+from model   import build_model     # noqa: E402
+from dataset import get_dataloaders  # noqa: E402
 
 
 # ─────────────────────────────────────────────────────────────
@@ -70,7 +88,7 @@ def mc_dropout_inference(
     results = []
 
     for batch in tqdm(loader, desc=f"MC Dropout (T={T})"):
-        images   = batch["image"].to(device)   # (B, 7, H, W)
+        images   = batch["image"].to(device)   # (B, 6, H, W)
         labels   = batch["label"]              # (B, H, W) — keep on CPU
         events   = batch["event"]
         chip_ids = batch["chip_id"]
