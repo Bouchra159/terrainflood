@@ -387,7 +387,8 @@ def audit_val_loop(data_root: str) -> None:
     model.eval()
     criterion = FloodLoss(pos_weight=10.0, alpha=0.5)
 
-    train_mod = _import_module("train_mod_val", str(_repo_root / "train.py"))
+    # Reuse already-loaded module from audit_iou() if available
+    train_mod = sys.modules.get("train_mod") or _import_module("train_mod", str(_repo_root / "train.py"))
     val_epoch = train_mod.val_epoch
 
     print(f"\n  Running full val epoch (random model)...")

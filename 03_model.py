@@ -237,13 +237,15 @@ class SiameseEncoder(nn.Module):
     def forward(self, pre: torch.Tensor,
                 post: torch.Tensor) -> list[torch.Tensor]:
         """
-        Returns list of feature differences: [diff0, diff1, diff2, diff3, diff4]
-        Each diff_i = post_features_i - pre_features_i
+        Returns list of encoder feature maps: [s0, s1, s2, s3, s4]
+
+        Sen1Floods11 is a single-date dataset: pre and post are the same
+        chip normalised with identical statistics, so post - pre == 0
+        everywhere. Difference encoding is only valid for true bi-temporal
+        pairs; for single-date data we encode the post image directly.
         """
-        pre_feats  = self.encode_single(pre)
         post_feats = self.encode_single(post)
-        diffs = [p - q for p, q in zip(post_feats, pre_feats)]
-        return diffs
+        return post_feats
 
 
 # ─────────────────────────────────────────────────────────────

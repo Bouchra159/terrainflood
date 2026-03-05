@@ -102,14 +102,16 @@ def main() -> None:
     logdir = Path(args.logdir)
     out_dir = Path(args.out_dir)
 
-    # Common tag guesses; we’ll export whatever exists.
-    # If your tags differ, we’ll adjust after seeing what's available.
+    # Tags logged by train.py via add_scalars / add_scalar.
+    # add_scalars("Loss", {"train":..., "val":...}) → "Loss/train", "Loss/val"
+    # add_scalars("IoU",  {"train":..., "val":...}) → "IoU/train",  "IoU/val"
+    # add_scalar("LR", ...) → "LR"
     tags = [
-        "train/loss",
-        "val/loss",
-        "train/iou",
-        "val/iou",
-        "lr",
+        "Loss/train",
+        "Loss/val",
+        "IoU/train",
+        "IoU/val",
+        "LR",
     ]
 
     data = _load_scalars(logdir, tags)
@@ -125,8 +127,8 @@ def main() -> None:
         xlabel="Step",
         ylabel="Loss",
         series={
-            "train": data.get("train/loss", []),
-            "val": data.get("val/loss", []),
+            "train": data.get("Loss/train", []),
+            "val": data.get("Loss/val", []),
         },
     )
 
@@ -136,19 +138,19 @@ def main() -> None:
         xlabel="Step",
         ylabel="IoU",
         series={
-            "train": data.get("train/iou", []),
-            "val": data.get("val/iou", []),
+            "train": data.get("IoU/train", []),
+            "val": data.get("IoU/val", []),
         },
     )
 
     # Also save LR if present
-    if data.get("lr"):
+    if data.get("LR"):
         _plot_series(
             out_dir / "figures" / f"variant_{args.variant}_lr.png",
             title=f"Learning rate — Variant {args.variant}",
             xlabel="Step",
             ylabel="LR",
-            series={"lr": data["lr"]},
+            series={"lr": data["LR"]},
         )
 
     # Quick console summary

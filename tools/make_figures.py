@@ -34,6 +34,7 @@ import math
 import os
 import random
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -541,10 +542,6 @@ def save_run_summary(metrics_csv: Optional[Path], out_tables: Path, variant: str
         f.write("|" + "|".join(["---"] * len(sorted(rows[0].keys()))) + "|\n")
         for r in rows:
             f.write("| " + " | ".join("" if r.get(k) is None else str(r.get(k)) for k in sorted(rows[0].keys())) + " |\n")
-
-
-# BytesIO for TB image decode
-from io import BytesIO
 
 
 def main():
