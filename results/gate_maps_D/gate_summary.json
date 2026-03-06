@@ -1,0 +1,128 @@
+{
+  "variant": "D",
+  "checkpoint": "checkpoints/variant_D/best.pt",
+  "split": "test",
+  "n_chips": 15,
+  "chips": [
+    {
+      "chip_id": "Bolivia_103757",
+      "event": "Bolivia",
+      "hand_mean_m": 2.8,
+      "gate_alpha0_mean": 0.581,
+      "gate_alpha3_mean": 0.4098,
+      "figure": "Bolivia_Bolivia_103757_gate.png"
+    },
+    {
+      "chip_id": "Bolivia_129334",
+      "event": "Bolivia",
+      "hand_mean_m": 1.03,
+      "gate_alpha0_mean": 0.7006,
+      "gate_alpha3_mean": 0.5623,
+      "figure": "Bolivia_Bolivia_129334_gate.png"
+    },
+    {
+      "chip_id": "Bolivia_195474",
+      "event": "Bolivia",
+      "hand_mean_m": 3.04,
+      "gate_alpha0_mean": 0.435,
+      "gate_alpha3_mean": 0.2932,
+      "figure": "Bolivia_Bolivia_195474_gate.png"
+    },
+    {
+      "chip_id": "Bolivia_23014",
+      "event": "Bolivia",
+      "hand_mean_m": 1.65,
+      "gate_alpha0_mean": 0.3732,
+      "gate_alpha3_mean": 0.3994,
+      "figure": "Bolivia_Bolivia_23014_gate.png"
+    },
+    {
+      "chip_id": "Bolivia_233925",
+      "event": "Bolivia",
+      "hand_mean_m": 2.78,
+      "gate_alpha0_mean": 0.312,
+      "gate_alpha3_mean": 0.4307,
+      "figure": "Bolivia_Bolivia_233925_gate.png"
+    },
+    {
+      "chip_id": "Bolivia_242570",
+      "event": "Bolivia",
+      "hand_mean_m": 1.06,
+      "gate_alpha0_mean": 0.4117,
+      "gate_alpha3_mean": 0.5061,
+      "figure": "Bolivia_Bolivia_242570_gate.png"
+    },
+    {
+      "chip_id": "Bolivia_290290",
+      "event": "Bolivia",
+      "hand_mean_m": 1.63,
+      "gate_alpha0_mean": 0.4589,
+      "gate_alpha3_mean": 0.3637,
+      "figure": "Bolivia_Bolivia_290290_gate.png"
+    },
+    {
+      "chip_id": "Bolivia_294583",
+      "event": "Bolivia",
+      "hand_mean_m": 2.75,
+      "gate_alpha0_mean": 0.4625,
+      "gate_alpha3_mean": 0.342,
+      "figure": "Bolivia_Bolivia_294583_gate.png"
+    },
+    {
+      "chip_id": "Bolivia_312675",
+      "event": "Bolivia",
+      "hand_mean_m": 2.76,
+      "gate_alpha0_mean": 0.4337,
+      "gate_alpha3_mean": 0.3303,
+      "figure": "Bolivia_Bolivia_312675_gate.png"
+    },
+    {
+      "chip_id": "Bolivia_314919",
+      "event": "Bolivia",
+      "hand_mean_m": 2.41,
+      "gate_alpha0_mean": 0.5794,
+      "gate_alpha3_mean": 0.4667,
+      "figure": "Bolivia_Bolivia_314919_gate.png"
+    },
+    {
+      "chip_id": "Bolivia_360519",
+      "event": "Bolivia",
+      "hand_mean_m": 1.26,
+      "gate_alpha0_mean": 0.3557,
+      "gate_alpha3_mean": 0.356,
+      "figure": "Bolivia_Bolivia_360519_gate.png"
+    },
+    {
+      "chip_id": "Bolivia_379434",
+      "event": "Bolivia",
+      "hand_mean_m": 1.04,
+      "gate_alpha0_mean": 0.4389,
+      "gate_alpha3_mean": 0.3358,
+      "figure": "Bolivia_Bolivia_379434_gate.png"
+    },
+    {
+      "chip_id": "Bolivia_432776",
+      "event": "Bolivia",
+      "hand_mean_m": 1.92,
+      "gate_alpha0_mean": 0.5998,
+      "gate_alpha3_mean": 0.4962,
+      "figure": "Bolivia_Bolivia_432776_gate.png"
+    },
+    {
+      "chip_id": "Bolivia_60373",
+      "event": "Bolivia",
+      "hand_mean_m": 0.41,
+      "gate_alpha0_mean": 0.3396,
+      "gate_alpha3_mean": 0.3975,
+      "figure": "Bolivia_Bolivia_60373_gate.png"
+    },
+    {
+      "chip_id": "Bolivia_76104",
+      "event": "Bolivia",
+      "hand_mean_m": 2.21,
+      "gate_alpha0_mean": 0.2474,
+      "gate_alpha3_mean": 0.3747,
+      "figure": "Bolivia_Bolivia_76104_gate.png"
+    }
+  ]
+}
