@@ -29,8 +29,14 @@ fi
 
 mkdir -p logs
 
+# Run audit before training
+echo "=== PIPELINE AUDIT ==="
+python tools/audit_pipeline.py --data_root data/sen1floods11 --skip_val_loop --skip_sampler
+echo "=== AUDIT PASSED — STARTING TRAINING ==="
+
 # Variant A: SAR-only baseline — no HAND, no MC Dropout
 # This is the essential control for the ablation study.
+# All hyperparameters are identical across A/B/C/D for a fair comparison.
 python -u train.py \
     --variant A \
     --data_root data/sen1floods11 \
@@ -39,10 +45,13 @@ python -u train.py \
     --batch_size 8 \
     --patch_size 256 \
     --lr 1e-4 \
+    --weight_decay 1e-4 \
     --pos_weight 10.0 \
     --loss_alpha 0.5 \
+    --grad_clip 1.0 \
     --early_stopping_patience 10 \
-    --num_workers 4
+    --num_workers 4 \
+    --seed 42
 
 echo "=== JOB DONE ==="
 date

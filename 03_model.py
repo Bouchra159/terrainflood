@@ -277,8 +277,17 @@ class FloodSegmentationModel(nn.Module):
       [1] VH_pre
       [2] VV_post
       [3] VH_post
-      [4] VV_VH_ratio  (used as extra feature when hand_as_band=False)
-      [5] HAND         (used by gate OR as band, depending on config)
+      [4] VV_VH_ratio  ← present in the 6-band data tensor but NOT fed to the
+                         encoder in any current variant; available for future
+                         ablation (e.g. concatenating ratio to post branch)
+      [5] HAND         ← z-score normalised in the tensor; _prepare_hand()
+                         denormalises to metres before passing to the gate
+
+    Encoder input per variant:
+      Variant A (SAR only):   pre=[ch0,ch1]  post=[ch2,ch3]  — 2-ch per branch
+      Variant B (HAND band):  pre=[ch0,ch1,ch5]  post=[ch2,ch3,ch5]  — 3-ch
+      Variant C (HAND gate):  pre=[ch0,ch1]  post=[ch2,ch3]; ch5→gate
+      Variant D (full model): same as C + MC Dropout active at inference
 
     Note: WorldPop is NOT a model input. It is used only in 06_exposure.py
     post-prediction for population exposure estimation.
@@ -350,10 +359,35 @@ class FloodSegmentationModel(nn.Module):
     def _prepare_hand(self, x: torch.Tensor,
                       target_size: tuple) -> torch.Tensor:
         """
-        Extracts HAND channel from input tensor and resizes to target_size.
-        HAND is channel index 5 in our 6-band input stack.
+        Extracts HAND channel from input tensor, denormalises from z-score
+        to approximate raw metres, and resizes to target_size.
+
+        WHY the denormalisation is necessary
+        ─────────────────────────────────────
+        Channel 5 in batch["image"] holds z-score normalised HAND:
+            z = (HAND_metres − 9.346) / 28.330
+
+        HANDAttentionGate applies:
+            gate = exp(−h / 50.0)
+
+        This decay constant (50 m) is calibrated in metres.
+        Without denormalisation h is a z-score and the gate collapses:
+            HAND= 50 m → z=+1.43 → gate=exp(−1.43/50)=0.972  [should be 0.37]
+            HAND=500 m → z=+17.3 → gate=exp(−17.3/50)=0.707  [should be ≈0.00]
+
+        With denormalisation:
+            HAND= 50 m → gate = exp(−50/50)  = 0.368  ✓
+            HAND=500 m → gate = exp(−500/50) ≈ 0.000  ✓  (Andes suppressed)
+
+        Constants from norm_stats.json (train split, 364 chips):
+            HAND mean = 9.346 m,  HAND std = 28.330 m
         """
-        hand = x[:, 5:6, :, :]   # (B, 1, H, W)
+        hand_z = x[:, 5:6, :, :]   # (B, 1, H, W) — z-score normalised
+        # Denormalise to approximate raw HAND in metres so the physics gate
+        # exp(-h / 50) operates on the correct physical scale.
+        _HAND_MEAN: float = 9.346   # metres — from norm_stats.json
+        _HAND_STD:  float = 28.330  # metres — from norm_stats.json
+        hand = hand_z * _HAND_STD + _HAND_MEAN   # (B, 1, H, W) ≈ raw metres
         if hand.shape[-2:] != target_size:
             hand = F.interpolate(hand, size=target_size,
                                  mode="bilinear", align_corners=False)

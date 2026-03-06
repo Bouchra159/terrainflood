@@ -42,10 +42,13 @@ python -u train.py \
     --batch_size 8 \
     --patch_size 256 \
     --lr 1e-4 \
+    --weight_decay 1e-4 \
     --pos_weight 10.0 \
     --loss_alpha 0.5 \
+    --grad_clip 1.0 \
     --early_stopping_patience 10 \
-    --num_workers 4
+    --num_workers 4 \
+    --seed 42
 
 echo "=== JOB DONE ==="
 date

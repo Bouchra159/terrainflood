@@ -381,6 +381,12 @@ def run_evaluation(args: argparse.Namespace) -> None:
     figs_dir.mkdir(parents=True, exist_ok=True)
     maps_dir.mkdir(parents=True, exist_ok=True)
 
+    # Save evaluation config for reproducibility
+    import json as _json
+    (out_dir / "eval_config.json").write_text(
+        _json.dumps(vars(args), indent=2)
+    )
+
     print(f"\nDevice      : {device}")
     print(f"Checkpoint  : {args.checkpoint}")
     print(f"Output dir  : {out_dir}\n")
@@ -435,9 +441,16 @@ def run_evaluation(args: argparse.Namespace) -> None:
     )
 
     # Coverage-accuracy curve
+    _variant_descriptions = {
+        "A": "Variant A (SAR only)",
+        "B": "Variant B (HAND as band)",
+        "C": "Variant C (HAND gate, no UQ)",
+        "D": "Variant D (HAND gate + MC Dropout)",
+    }
     plot_coverage_accuracy(
         results,
         out_path=str(figs_dir / "coverage_accuracy.png"),
+        variant_label=_variant_descriptions.get(variant, f"Variant {variant}"),
     )
 
     # Risk-Coverage curve
