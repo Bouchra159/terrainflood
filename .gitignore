@@ -10,7 +10,9 @@ Thumbs.db
 .vscode/
 *.swp
 
-# ─── Large data / GeoTIFF ─────────────────────────────────────
+# ─── Large dataset and GeoTIFF files ──────────────────────────
+# The full Sen1Floods11 dataset stays on the cluster only.
+# norm_stats.json is small and IS tracked (git add -f if needed).
 data/
 datasets/
 *.tif
@@ -18,20 +20,24 @@ datasets/
 *.tfrecord
 *.tar.gz
 
-# ─── Training outputs ─────────────────────────────────────────
-checkpoints/
+# ─── Model checkpoint weight files (large binaries) ───────────
+# The .pt weight files are too large for GitHub (~80-100 MB each).
+# config.json, eval_config.json etc. inside checkpoints/ ARE tracked.
+**/*.pt
+
+# ─── TensorBoard event files and SLURM logs ───────────────────
+# Regenerable from training. Do not commit.
+**/runs/
 logs/
-runs/
 
-# ─── Results / figures (generated at runtime; do not commit) ──
-results/
-figures/
-*.png
-*.csv
+# ─── Per-chip prediction maps (many large PNGs, regenerable) ──
+# Per-chip flood maps, gate maps etc. can be hundreds of files.
+# Key aggregate figures (ablation_comparison.png etc.) ARE tracked.
+results/eval_*/maps/
+results/gate_maps_*/*_gate.png
 
-# ─── Misc generated files ─────────────────────────────────────
+# ─── Misc internal / secret files ─────────────────────────────
 task_ids.json
-norm_stats.json
 run_summary.md
 
 # ─── Claude Code worktrees ────────────────────────────────────
