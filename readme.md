@@ -34,7 +34,7 @@ terrainflood/
 ├── 02_dataset.py         Phase 1 — PyTorch Dataset + DataLoader factory        ✓ Complete
 ├── 03_model.py           Phase 2 — Architecture (Siamese + HAND gate)          ✓ Complete
 ├── train.py              Phase 3 — Training loop + AMP + TensorBoard           ✓ Complete
-├── uncertainty.py        Phase 4 — MC Dropout inference + calibration          ✓ Complete
+├── 05_uncertainty.py     Phase 4 — MC Dropout inference + calibration          ✓ Complete
 ├── 06_exposure.py        Phase 5 — Population exposure + confidence bounds     ✓ Complete
 ├── eval.py               Phase 6 — Metrics, ablation table                     ✓ Complete
 ├── plots.py              Phase 6 — All figure generation                       ✓ Complete
@@ -45,11 +45,14 @@ terrainflood/
 ├── environment.yml              — Conda environment definition
 ├── requirements.txt             — pip-installable subset
 ├── tools/
-│   ├── audit_pipeline.py        ← Run before any training to verify dataset + IoU
-│   ├── export_tb_curves.py      ← Export TensorBoard curves to CSV/PNG
-│   ├── make_figures.py          ← Paper-quality figure generation
-│   └── prediction_figures.py    ← Per-chip prediction visualisation
+│   ├── audit_pipeline.py              ← Run before any training to verify dataset + IoU
+│   ├── export_tb_curves.py            ← Export TensorBoard scalars to CSV/PNG
+│   ├── make_figures.py                ← Dataset/paper-quality figure generation
+│   ├── plot_training_curves_overlay.py← Multi-variant training curve overlay figure
+│   ├── prediction_figures.py          ← Per-chip prediction visualisation
+│   └── visualize_gate.py              ← HAND attention gate map visualisation (C/D)
 ├── jobs/
+│   ├── train_A.sbatch           ← SLURM: train Variant A (SAR baseline)
 │   ├── train_B.sbatch           ← SLURM: train Variant B
 │   ├── train_C.sbatch           ← SLURM: train Variant C
 │   └── train_D.sbatch           ← SLURM: train Variant D (full model)
@@ -151,9 +154,34 @@ sbatch jobs/train_D.sbatch   # Variant D (full model)
 squeue -u $USER
 tensorboard --logdir checkpoints/variant_D/runs
 
-# Evaluate
+# Evaluate individual variant (T=20 MC passes for D; T=1 for A/B/C)
 python eval.py --checkpoint checkpoints/variant_D/best.pt \
-               --data_root data/sen1floods11 --T 20
+               --data_root data/sen1floods11 --output_dir results/eval_D --T 20
+
+# Evaluate all 4 variants (ablation table)
+python eval.py --ablation \
+               --checkpoints_dir checkpoints \
+               --data_root data/sen1floods11 \
+               --output_dir results/ablation
+
+# Gate visualisation (Variants C and D only)
+python tools/visualize_gate.py \
+    --checkpoint checkpoints/variant_D/best.pt \
+    --data_root data/sen1floods11 \
+    --output_dir results/gate_maps_D --split test --n_chips 15
+
+# Uncertainty calibration (Variant D only)
+python 05_uncertainty.py \
+    --checkpoint checkpoints/variant_D/best.pt \
+    --data_root data/sen1floods11 \
+    --output_dir results/uncertainty_D --T 20
+
+# Training curves
+python tools/export_tb_curves.py \
+    --logdir checkpoints/variant_D/runs \
+    --out_dir results --variant D
+python tools/plot_training_curves_overlay.py \
+    --curves_dir results/curves --out_dir results/paper_figures
 ```
 
 ---
@@ -171,6 +199,27 @@ DKUCC (VPN OFF, school WiFi)
   └── gsutil -m cp -r gs://sen1floods11/v1.1/data/flood_events data/sen1floods11/
   └── rclone copy gdrive:flood_chips data/  (optional: HAND + pop per chip)
 ```
+
+---
+
+## Results — Bolivia OOD test set (15 chips)
+
+All metrics on the held-out Bolivia event (out-of-distribution, never seen during training or validation).
+
+| Variant | IoU | F1 | Precision | Recall | ECE (pre-cal) | ECE (post-cal) |
+|---------|-----|----|-----------|--------|---------------|----------------|
+| A — SAR only | 0.408 | 0.580 | 0.413 | 0.973 | 0.402 | — |
+| B — HAND band | 0.441 | 0.612 | 0.453 | 0.944 | 0.240 | — |
+| C — HAND gate | 0.662 | 0.797 | 0.789 | 0.805 | 0.370 | — |
+| **D — gate + MC-Dropout** | **0.690** | **0.817** | **0.788** | **0.848** | 0.362 | **0.077** |
+
+Key findings:
+- **B→C jump (+22 IoU points):** Physics-informed gating outperforms naive HAND inclusion by a large margin. How HAND is integrated matters.
+- **C→D gain (+2.8 IoU points):** Driven entirely by recall (+4.4%), precision unchanged. MC Dropout provides OOD regularization.
+- **Calibration:** Temperature scaling (T=0.100) reduces Variant D ECE by 79% (0.362 → 0.077), delivering excellent post-calibration reliability.
+- **HAND gate physics:** Gate α correlates with HAND in the expected direction — lowest-elevation chips receive highest gate activation (flood signal retained), highest-elevation chip receives most suppression.
+
+Training converges fast: C and D reach best validation IoU in ~15 epochs. A requires 50 epochs.
 
 ---
 
