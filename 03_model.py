@@ -153,9 +153,15 @@ class HANDAttentionGate(nn.Module):
                              mode="bilinear", align_corners=False)
         x_proj = self.W_x(x)
 
-        # Normalise HAND: invert so low HAND → high value (more attention)
-        # hand is in metres; clamp to [0, 100] before normalisation
-        hand_norm = 1.0 - (hand.clamp(0, 100) / 100.0)  # 0=hilltop, 1=drainage
+        # Normalise HAND: invert so low HAND → high attention (flood-prone)
+        # Exponential decay: α(h) = exp(-h / 50)
+        #   h=0 m  (stream)   → 1.00  (full attention — flood likely)
+        #   h=50 m            → 0.37
+        #   h=150 m           → 0.05
+        #   h=500 m (Andes)   → ≈0    (no attention — flood impossible)
+        # This avoids the hard 100 m clamp that misrepresents Andean terrain
+        # in the Bolivia OOD test set and is differentiable everywhere.
+        hand_norm = torch.exp(-hand.clamp(min=0.0) / 50.0)  # (B,1,H,W) ∈ (0,1]
         h_proj = self.W_h(hand_norm)
 
         # Combine and compute attention
