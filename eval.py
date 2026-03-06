@@ -169,6 +169,20 @@ def compute_risk_coverage_curve(
     variance = variance[valid].astype(np.float32)
     labels   = labels[valid].astype(np.float32)
 
+    # Detect degenerate case: variance == 0 everywhere (A/B/C with dropout=0)
+    # In this case all pixels are "trusted" at every threshold → curve is flat.
+    # We still compute it correctly but flag it so callers can annotate plots.
+    _degenerate = bool(float(variance.max()) == 0.0)
+    if _degenerate:
+        import warnings as _w
+        _w.warn(
+            "compute_risk_coverage_curve: all pixel variances are zero "
+            "(dropout_rate=0 → MC passes are identical). "
+            "Risk-coverage curve is degenerate — coverage=1.0 at every threshold. "
+            "AURC=0 for A/B/C does NOT mean perfect UQ; it means no UQ signal.",
+            UserWarning, stacklevel=2,
+        )
+
     max_var    = float(variance.max()) or 1.0
     thresholds = np.linspace(0.0, max_var, n_thresholds + 1)[1:]  # skip τ=0
 
@@ -207,6 +221,10 @@ def compute_risk_coverage_curve(
         "coverage":   coverages.tolist(),
         "risk":       risks.tolist(),
         "aurc":       round(aurc, 4),
+        # True when dropout_rate=0 (Variants A/B/C).
+        # AURC=0 for these variants is NOT meaningful — it reflects the absence
+        # of any uncertainty signal, not high-quality uncertainty calibration.
+        "degenerate": _degenerate,
     }
 
 

@@ -13,6 +13,23 @@ import matplotlib.pyplot as plt
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 
+# ─────────────────────────────────────────────────────────────
+# Column name normalisation
+# Maps raw TensorBoard tag names → CSV column names that are
+# expected by tools/make_figures.py:fig6_training_curves().
+# The first colmap_candidates tuple there is:
+#   ("epoch", "train_loss", "val_loss", "train_iou", "val_iou")
+# so we must match those exact strings.
+# ─────────────────────────────────────────────────────────────
+_TAG_TO_COL: Dict[str, str] = {
+    "Loss/train": "train_loss",
+    "Loss/val":   "val_loss",
+    "IoU/train":  "train_iou",
+    "IoU/val":    "val_iou",
+    "LR":         "lr",
+}
+
+
 def _load_scalars(logdir: Path, tags: List[str]) -> Dict[str, List[Tuple[int, float]]]:
     """
     Returns:
@@ -44,10 +61,20 @@ def _ensure_dir(p: Path) -> None:
     p.mkdir(parents=True, exist_ok=True)
 
 
-def _write_csv(out_csv: Path, data: Dict[str, List[Tuple[int, float]]]) -> None:
+def _write_csv(
+    out_csv: Path,
+    data: Dict[str, List[Tuple[int, float]]],
+    step_col: str = "epoch",
+) -> None:
     """
-    Writes a wide CSV with columns: step, <tag1>, <tag2>, ...
+    Writes a wide CSV with columns: <step_col>, <tag1>, <tag2>, ...
     Aligns by step; missing values left blank.
+
+    Args:
+        out_csv:  destination path
+        data:     {column_name: [(step, value), ...]}
+        step_col: name for the step column (default "epoch" to match
+                  make_figures.py:fig6_training_curves expectations)
     """
     # collect union of steps
     steps = sorted({s for series in data.values() for (s, _) in series})
@@ -56,7 +83,7 @@ def _write_csv(out_csv: Path, data: Dict[str, List[Tuple[int, float]]]) -> None:
     _ensure_dir(out_csv.parent)
     with out_csv.open("w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["step", *data.keys()])
+        w.writerow([step_col, *data.keys()])
         for s in steps:
             row = [s]
             for tag in data.keys():
@@ -116,44 +143,54 @@ def main() -> None:
 
     data = _load_scalars(logdir, tags)
 
-    # Save CSV
-    out_csv = out_dir / "curves" / f"variant_{args.variant}_scalars.csv"
-    _write_csv(out_csv, data)
+    # Normalise column names so make_figures.py:fig6_training_curves()
+    # can parse the CSV without manual intervention.
+    # Raw TB tags  →  normalised CSV columns:
+    #   Loss/train  →  train_loss
+    #   Loss/val    →  val_loss
+    #   IoU/train   →  train_iou
+    #   IoU/val     →  val_iou
+    #   LR          →  lr
+    data_normed = {_TAG_TO_COL.get(k, k): v for k, v in data.items()}
 
-    # Plots
+    # Save CSV  (step column written as "epoch" to match make_figures.py)
+    out_csv = out_dir / "curves" / f"variant_{args.variant}_scalars.csv"
+    _write_csv(out_csv, data_normed, step_col="epoch")
+
+    # Plots  (use data_normed so series keys are clean readable labels)
     _plot_series(
         out_dir / "figures" / f"variant_{args.variant}_loss.png",
         title=f"Training curves — Variant {args.variant} (Loss)",
-        xlabel="Step",
+        xlabel="Epoch",
         ylabel="Loss",
         series={
-            "train": data.get("Loss/train", []),
-            "val": data.get("Loss/val", []),
+            "train": data_normed.get("train_loss", []),
+            "val":   data_normed.get("val_loss",   []),
         },
     )
 
     _plot_series(
         out_dir / "figures" / f"variant_{args.variant}_iou.png",
         title=f"Training curves — Variant {args.variant} (IoU)",
-        xlabel="Step",
+        xlabel="Epoch",
         ylabel="IoU",
         series={
-            "train": data.get("IoU/train", []),
-            "val": data.get("IoU/val", []),
+            "train": data_normed.get("train_iou", []),
+            "val":   data_normed.get("val_iou",   []),
         },
     )
 
     # Also save LR if present
-    if data.get("LR"):
+    if data_normed.get("lr"):
         _plot_series(
             out_dir / "figures" / f"variant_{args.variant}_lr.png",
             title=f"Learning rate — Variant {args.variant}",
-            xlabel="Step",
+            xlabel="Epoch",
             ylabel="LR",
-            series={"lr": data["LR"]},
+            series={"lr": data_normed["lr"]},
         )
 
-    # Quick console summary
+    # Quick console summary (report missing using original tag names)
     missing = [t for t, v in data.items() if len(v) == 0]
     print(f"Saved: {out_csv}")
     print(f"Saved: {(out_dir / 'figures').resolve()}")
