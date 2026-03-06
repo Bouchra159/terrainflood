@@ -226,7 +226,12 @@ def plot_coverage_accuracy(
     variances = np.concatenate(all_vars)
     labels    = np.concatenate(all_labels).astype(np.float32)
 
-    max_var    = float(variances.max())
+    # Guard against degenerate case (Variants A/B/C: dropout_rate=0 → variance=0)
+    # np.linspace(0, 0, n) gives all-zero thresholds but trusted=all True for
+    # tau=0 when variances are 0 — it degenerates gracefully to a single point
+    # at (coverage=1.0, IoU=constant). The `or 1.0` ensures thresholds sweep
+    # [0, 1] even when max_var=0 so the plot always has meaningful axes.
+    max_var    = float(variances.max()) or 1.0
     thresholds = np.linspace(0, max_var, n_thresh + 1)[1:]
 
     coverages  = []
@@ -448,6 +453,99 @@ def plot_ablation_table(
         ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.2f"))
 
     fig.suptitle("Ablation Study — Bolivia OOD Test Set")
+    plt.tight_layout(pad=0.4)
+    plt.savefig(out_path, bbox_inches="tight")
+    plt.close()
+    print(f"  Saved: {out_path}")
+
+
+# ─────────────────────────────────────────────────────────────
+# 7.  HAND gate attention map visualisation
+# ─────────────────────────────────────────────────────────────
+
+def plot_hand_gate_maps(
+    sar_vv:    np.ndarray,
+    hand_m:    np.ndarray,
+    gate_maps: list,
+    label:     np.ndarray,
+    mean_prob: np.ndarray,
+    chip_id:   str,
+    out_path:  str,
+) -> None:
+    """
+    Visualise the HAND attention gate maps alongside SAR and ground truth.
+
+    Produces a 3-row publication figure:
+      Row 1: SAR VV (post)  |  HAND in metres  |  Flood probability  |  GT label
+      Row 2: Gate α — level 0 (finest, H/2) ... level 3 (coarsest, H/32)
+      Row 3: (title labels)
+
+    Physical interpretation of α values:
+      α → 1.0  (bright)  = near river / low HAND  → flood signal passes through
+      α → 0.0  (dark)    = high HAND / hillside   → feature suppressed
+
+    Args:
+        sar_vv:    (H, W) SAR VV post-event (raw dB)
+        hand_m:    (H, W) HAND in metres (denormalised)
+        gate_maps: list of 4 arrays, each (H, W) with α values ∈ [0, 1]
+                   ordered finest → coarsest  [alpha0, alpha1, alpha2, alpha3]
+        label:     (H, W) ground truth (0/1/-1 ignore)
+        mean_prob: (H, W) flood probability from MC inference
+        chip_id:   string identifier for suptitle
+        out_path:  save path
+    """
+    # ── stretch SAR for display ───────────────────────────────
+    def _stretch(arr: np.ndarray) -> np.ndarray:
+        lo, hi = np.nanpercentile(arr, [2, 98])
+        if abs(hi - lo) < 1e-8:
+            return np.zeros_like(arr)
+        return np.clip((arr - lo) / (hi - lo), 0.0, 1.0)
+
+    # ── figure layout: 2 rows × 4 cols ───────────────────────
+    # IEEE double-column: 7.16 in wide
+    fig, axes = plt.subplots(2, 4, figsize=(7.16, 4.0))
+
+    gate_titles = [
+        r"Gate $\alpha_0$  (H/2)",
+        r"Gate $\alpha_1$  (H/4)",
+        r"Gate $\alpha_2$  (H/8)",
+        r"Gate $\alpha_3$  (H/32)",
+    ]
+
+    # ── Row 0: context panels ────────────────────────────────
+    row0_panels = [
+        (_stretch(sar_vv),              "SAR VV (post)",   "gray",     None,  None),
+        (hand_m,                        "HAND (metres)",   "terrain",  0,     None),
+        (mean_prob,                     "P(flood)",        "RdYlBu_r", 0.0,   1.0),
+        ((label > 0).astype(np.float32),"Ground truth",   "Blues",    0.0,   1.0),
+    ]
+    for ax, (data, title, cmap, vmin, vmax) in zip(axes[0], row0_panels):
+        kw = {"cmap": cmap, "interpolation": "nearest"}
+        if vmin is not None:
+            kw["vmin"] = vmin
+        if vmax is not None:
+            kw["vmax"] = vmax
+        im = ax.imshow(data, **kw)
+        ax.set_title(title, pad=3)
+        ax.axis("off")
+        cb = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.03, shrink=0.82)
+        cb.ax.tick_params(labelsize=6)
+
+    # ── Row 1: gate α maps ───────────────────────────────────
+    for ax, alpha, title in zip(axes[1], gate_maps, gate_titles):
+        im = ax.imshow(alpha, cmap="RdYlGn",
+                       vmin=0.0, vmax=1.0, interpolation="bilinear")
+        ax.set_title(title, pad=3)
+        ax.axis("off")
+        cb = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.03, shrink=0.82)
+        cb.ax.tick_params(labelsize=6)
+        cb.set_ticks([0.0, 0.5, 1.0])
+
+    fig.suptitle(
+        f"HAND Gate Attention Maps — Chip: {chip_id}\n"
+        r"Green $\alpha\!\approx\!1$ (flood-prone) · Red $\alpha\!\approx\!0$ (suppressed)",
+        y=1.01, fontsize=10,
+    )
     plt.tight_layout(pad=0.4)
     plt.savefig(out_path, bbox_inches="tight")
     plt.close()

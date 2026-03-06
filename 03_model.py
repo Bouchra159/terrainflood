@@ -19,6 +19,7 @@ Ablation variants controlled by config flags:
   use_hand_gate=True  + MC dropout T>1     →  Variant D: full model (ours)
 """
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -466,6 +467,75 @@ class FloodSegmentationModel(nn.Module):
                                    mode="bilinear", align_corners=False)
 
         return logits   # raw logits — caller applies sigmoid
+
+    # ── Gate visualisation forward pass ──────────────────────
+
+    def forward_with_gates(
+        self, x: torch.Tensor
+    ) -> tuple[torch.Tensor, Optional[list[np.ndarray]]]:
+        """
+        Like forward(), but also returns the 4 HAND gate attention maps
+        upsampled to input resolution for visualisation.
+
+        Only meaningful for Variants C and D (use_hand_gate=True).
+        For Variants A and B returns (logits, None).
+
+        Args:
+            x: (B, 6, H, W) input tensor
+
+        Returns:
+            logits    : (B, 1, H, W) raw logits
+            gate_maps : list of 4 numpy arrays, each (B, H, W) float32 ∈ [0,1]
+                        ordered finest→coarsest [alpha0, alpha1, alpha2, alpha3]
+                        or None if use_hand_gate=False
+        """
+        if not self.use_hand_gate:
+            return self.forward(x), None
+
+        B, _, H, W = x.shape
+
+        pre  = x[:, 0:2, :, :]
+        post = x[:, 2:4, :, :]
+        diffs = self.encoder(pre, post)
+        d0, d1, d2, d3, d4 = diffs
+
+        # Gate 4: bottleneck → d3 skip
+        hand_d3 = self._prepare_hand(x, d3.shape[-2:])
+        d3_gated, alpha3 = self.gate4(d4, d3, hand_d3)
+        out = self.dec4(d4, d3_gated)
+
+        # Gate 3: decoder → d2 skip
+        hand_d2 = self._prepare_hand(x, d2.shape[-2:])
+        d2_gated, alpha2 = self.gate3(out, d2, hand_d2)
+        out = self.dec3(out, d2_gated)
+
+        # Gate 2: decoder → d1 skip
+        hand_d1 = self._prepare_hand(x, d1.shape[-2:])
+        d1_gated, alpha1 = self.gate2(out, d1, hand_d1)
+        out = self.dec2(out, d1_gated)
+
+        # Gate 1: decoder → d0 skip  (finest, H/2)
+        hand_d0 = self._prepare_hand(x, d0.shape[-2:])
+        d0_gated, alpha0 = self.gate1(out, d0, hand_d0)
+        out = self.dec1(out, d0_gated)
+
+        logits = self.output_head(out)
+        if logits.shape[-2:] != (H, W):
+            logits = F.interpolate(logits, size=(H, W),
+                                   mode="bilinear", align_corners=False)
+
+        # Upsample all gate maps to input (H, W) for direct visual comparison.
+        # Return as CPU numpy arrays (no grad) so plotting code needs no torch.
+        gate_maps: list[np.ndarray] = []
+        for alpha in [alpha0, alpha1, alpha2, alpha3]:
+            alpha_up = F.interpolate(alpha, size=(H, W),
+                                     mode="bilinear", align_corners=False)
+            # Shape: (B, H, W)
+            gate_maps.append(
+                alpha_up.squeeze(1).detach().cpu().float().numpy()
+            )
+
+        return logits, gate_maps
 
     # ── Parameter count ──────────────────────────────────────
 
