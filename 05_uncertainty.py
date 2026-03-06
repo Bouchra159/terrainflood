@@ -70,7 +70,7 @@ def mc_dropout_inference(
     loader:   torch.utils.data.DataLoader,
     device:   torch.device,
     T:        int = 20,
-) -> dict:
+) -> list[dict]:
     """
     Runs T stochastic forward passes per batch with dropout active.
 

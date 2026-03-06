@@ -194,9 +194,10 @@ def plot_reliability_diagram(
 # ─────────────────────────────────────────────────────────────
 
 def plot_coverage_accuracy(
-    results:  list,
-    out_path: str,
-    n_thresh: int = 50,
+    results:       list,
+    out_path:      str,
+    n_thresh:      int = 50,
+    variant_label: str = "Variant D (HAND gate + MC Dropout)",
 ) -> None:
     """
     Coverage-accuracy curve.
@@ -206,9 +207,11 @@ def plot_coverage_accuracy(
       accuracy = IoU of flood predictions inside the trust mask
 
     Args:
-        results:  list of per-chip dicts (mean_prob, variance, label)
-        out_path: save path
-        n_thresh: number of threshold steps
+        results:       list of per-chip dicts (mean_prob, variance, label)
+        out_path:      save path
+        n_thresh:      number of threshold steps
+        variant_label: legend label — pass e.g. "Variant D (HAND gate + MC Dropout)"
+                       so figures are correctly labelled when called for each variant
     """
     all_probs  = []
     all_vars   = []
@@ -246,7 +249,7 @@ def plot_coverage_accuracy(
     fig, ax = plt.subplots(figsize=(3.5, 3.0))
     ax.plot(coverages, accuracies, "o-", color="#1565C0",
             linewidth=1.5, markersize=3.5,
-            label="Variant D (HAND gate + MC Dropout)")
+            label=variant_label)
     ax.axvline(x=0.7, color="#9E9E9E", linestyle="--",
                linewidth=1.0, alpha=0.8, label="Coverage = 0.70")
 
