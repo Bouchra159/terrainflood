@@ -118,6 +118,24 @@ class FloodDataset(Dataset):
         self.samples = self._discover_samples()
         self.class_weights = self._compute_class_weights()
 
+        # Auto-load per-band statistics from norm_stats.json if present.
+        # This file is written by compute_normalization_stats() below and
+        # contains the real HAND mean/std computed on actual HAND chips.
+        # Falls back to the module-level NORM_STATS placeholders otherwise.
+        self._norm_stats = NORM_STATS.copy()
+        norm_json = self.data_root / "norm_stats.json"
+        if norm_json.exists():
+            with open(norm_json) as _f:
+                _loaded = json.load(_f)
+            self._norm_stats.update({k: tuple(v) for k, v in _loaded.items()})
+            print(f"[FloodDataset] Loaded norm stats from {norm_json}")
+        else:
+            print(
+                "[FloodDataset] WARNING: using placeholder HAND norm stats "
+                "(mean=5, std=10). Run:  python 02_dataset.py <data_root>  "
+                "after HAND chips are ready to compute real statistics."
+            )
+
         print(
             f"[FloodDataset] split={split} chips={len(self.samples)} "
             f"flood_ratio={self.class_weights['flood_ratio']:.3f} "
@@ -234,10 +252,14 @@ class FloodDataset(Dataset):
         return data
 
     def _normalise(self, band_data: np.ndarray, band_name: str) -> np.ndarray:
-        """Zero-mean, unit-variance normalisation using precomputed stats."""
-        if band_name not in NORM_STATS:
+        """Zero-mean, unit-variance normalisation using per-instance stats.
+
+        Uses self._norm_stats which is populated from norm_stats.json when
+        available, otherwise falls back to module-level NORM_STATS defaults.
+        """
+        if band_name not in self._norm_stats:
             return band_data
-        mean, std = NORM_STATS[band_name]
+        mean, std = self._norm_stats[band_name]
         return (band_data - mean) / (std + 1e-6)
 
     def _handle_permanent_water(self, label: np.ndarray) -> np.ndarray:

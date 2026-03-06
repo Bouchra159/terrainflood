@@ -63,21 +63,83 @@ except Exception:
 # -----------------------------
 
 def set_pub_style():
-    # Paper-ish defaults (no seaborn)
+    """
+    Apply publication-quality matplotlib style.
+
+    Targets IEEE TGRS / Remote Sensing of Environment / IGARSS standards:
+      - Serif fonts (Times New Roman / DejaVu Serif) matching journal body text
+      - Single column: 3.5 in  |  double column: 7.16 in
+      - Minimum 300 DPI for raster exports
+      - Font sizes >= 8 pt for all visible text
+      - Clean spines (top/right removed), light grid
+      - mathtext uses STIX (matches LaTeX Computer Modern closely)
+
+    Call this once at the top of any script before creating figures.
+    """
     plt.rcParams.update({
-        "figure.dpi": 160,
-        "savefig.dpi": 300,
-        "font.size": 11,
-        "axes.titlesize": 14,
-        "axes.labelsize": 12,
-        "legend.fontsize": 11,
-        "xtick.labelsize": 11,
-        "ytick.labelsize": 11,
-        "axes.grid": True,
-        "grid.alpha": 0.25,
-        "grid.linestyle": "--",
-        "axes.spines.top": False,
+        # ── Resolution ─────────────────────────────────────────────────────
+        "figure.dpi":       160,   # screen preview
+        "savefig.dpi":      300,   # final export (IEEE minimum)
+        "savefig.format":   "png",
+        "savefig.bbox":     "tight",
+        "savefig.pad_inches": 0.05,
+
+        # ── Fonts ───────────────────────────────────────────────────────────
+        # Prefer Times New Roman; fall back to DejaVu Serif then sans-serif.
+        # Use rcParams["font.family"] = "sans-serif" for conferences like IGARSS
+        # that accept Helvetica/Arial, but "serif" for full journal submissions.
+        "font.family":       "serif",
+        "font.serif":        ["Times New Roman", "DejaVu Serif", "Palatino",
+                              "Georgia", "serif"],
+        "font.size":         10,
+        "axes.titlesize":    11,
+        "axes.titleweight":  "bold",
+        "axes.labelsize":    10,
+        "legend.fontsize":   9,
+        "xtick.labelsize":   9,
+        "ytick.labelsize":   9,
+        "figure.titlesize":  12,
+        "figure.titleweight": "bold",
+
+        # ── Math text ───────────────────────────────────────────────────────
+        # 'stix' matches LaTeX Computer Modern closely for inline math labels
+        "mathtext.fontset":  "stix",
+
+        # ── Lines and markers ───────────────────────────────────────────────
+        "lines.linewidth":   1.5,
+        "lines.markersize":  5,
+        "patch.linewidth":   0.8,
+
+        # ── Axes ────────────────────────────────────────────────────────────
+        "axes.linewidth":    0.8,
+        "axes.spines.top":   False,
         "axes.spines.right": False,
+
+        # ── Grid ────────────────────────────────────────────────────────────
+        "axes.grid":         True,
+        "grid.alpha":        0.20,
+        "grid.linestyle":    "--",
+        "grid.linewidth":    0.5,
+        "grid.color":        "#888888",
+
+        # ── Legend ──────────────────────────────────────────────────────────
+        "legend.framealpha":  0.85,
+        "legend.edgecolor":   "0.7",
+        "legend.borderpad":   0.4,
+
+        # ── Figure ──────────────────────────────────────────────────────────
+        "figure.facecolor":  "white",
+        "axes.facecolor":    "white",
+
+        # ── Ticks ───────────────────────────────────────────────────────────
+        "xtick.direction":   "in",
+        "ytick.direction":   "in",
+        "xtick.major.size":  3.5,
+        "ytick.major.size":  3.5,
+        "xtick.minor.size":  2.0,
+        "ytick.minor.size":  2.0,
+        "xtick.major.width": 0.8,
+        "ytick.major.width": 0.8,
     })
 
 

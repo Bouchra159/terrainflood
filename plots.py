@@ -17,6 +17,63 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+
+
+# ─────────────────────────────────────────────────────────────
+# Publication-quality style  (IEEE TGRS / RSE / IGARSS)
+# Applied once at import; matches the journal body font and DPI
+# requirements without requiring a separate style file.
+# ─────────────────────────────────────────────────────────────
+plt.rcParams.update({
+    # Resolution
+    "figure.dpi":          160,
+    "savefig.dpi":         300,
+    "savefig.bbox":        "tight",
+    "savefig.pad_inches":  0.05,
+    # Fonts — serif for full journal; switch to "sans-serif" for conference
+    "font.family":         "serif",
+    "font.serif":          ["Times New Roman", "DejaVu Serif",
+                            "Palatino", "Georgia", "serif"],
+    "font.size":           10,
+    "axes.titlesize":      11,
+    "axes.titleweight":    "bold",
+    "axes.labelsize":      10,
+    "legend.fontsize":     9,
+    "xtick.labelsize":     9,
+    "ytick.labelsize":     9,
+    "figure.titlesize":    12,
+    "figure.titleweight":  "bold",
+    # Math text matches LaTeX Computer Modern
+    "mathtext.fontset":    "stix",
+    # Lines
+    "lines.linewidth":     1.5,
+    "lines.markersize":    5,
+    "patch.linewidth":     0.8,
+    # Axes
+    "axes.linewidth":      0.8,
+    "axes.spines.top":     False,
+    "axes.spines.right":   False,
+    # Grid
+    "axes.grid":           True,
+    "grid.alpha":          0.20,
+    "grid.linestyle":      "--",
+    "grid.linewidth":      0.5,
+    "grid.color":          "#888888",
+    # Legend
+    "legend.framealpha":   0.85,
+    "legend.edgecolor":    "0.7",
+    "legend.borderpad":    0.4,
+    # Ticks — inward, clean
+    "xtick.direction":     "in",
+    "ytick.direction":     "in",
+    "xtick.major.size":    3.5,
+    "ytick.major.size":    3.5,
+    "xtick.major.width":   0.8,
+    "ytick.major.width":   0.8,
+    "figure.facecolor":    "white",
+    "axes.facecolor":      "white",
+})
 
 
 # ─────────────────────────────────────────────────────────────
@@ -43,25 +100,30 @@ def plot_flood_map(
         chip_id:    string identifier for title
         out_path:   file path to save PNG
     """
-    fig, axes = plt.subplots(1, 4, figsize=(18, 4))
+    # IEEE double-column width: 7.16 in; 4 panels → 7.2 × 3.6 in
+    fig, axes = plt.subplots(1, 4, figsize=(7.2, 2.8))
 
     var_max = float(variance.max()) or 0.1
     panels = [
-        (mean_prob,                 "Flood probability",   "RdYlBu_r", 0, 1),
-        (variance,                  "Predictive variance", "hot_r",     0, var_max),
-        (trust_mask.astype(float),  "Trust mask",          "Greens",    0, 1),
-        ((label > 0).astype(float), "Ground truth",        "Blues",     0, 1),
+        # (data,                       title,                  cmap,        vmin,    vmax,    cbar_label)
+        (mean_prob,                 "Flood probability",    "RdYlBu_r",  0.0,     1.0,     "P(flood)"),
+        (variance,                  "Predictive variance",  "YlOrRd",    0.0,     var_max, "Var"),
+        (trust_mask.astype(float),  "Trust mask",           "Greens",    0.0,     1.0,     ""),
+        ((label > 0).astype(float), "Ground truth",         "Blues",     0.0,     1.0,     ""),
     ]
 
-    for ax, (data, title, cmap, vmin, vmax) in zip(axes, panels):
-        im = ax.imshow(data, cmap=cmap, vmin=vmin, vmax=vmax)
-        ax.set_title(title, fontsize=11)
+    for ax, (data, title, cmap, vmin, vmax, cbar_label) in zip(axes, panels):
+        im = ax.imshow(data, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="nearest")
+        ax.set_title(title, pad=3)
         ax.axis("off")
-        plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        cb = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.03, shrink=0.85)
+        cb.ax.tick_params(labelsize=7)
+        if cbar_label:
+            cb.set_label(cbar_label, fontsize=7)
 
-    fig.suptitle(f"Chip: {chip_id}", fontsize=12)
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=120, bbox_inches="tight")
+    fig.suptitle(f"Chip: {chip_id}", y=1.01)
+    plt.tight_layout(pad=0.4)
+    plt.savefig(out_path, bbox_inches="tight")
     plt.close()
 
 
@@ -89,23 +151,40 @@ def plot_reliability_diagram(
     """
     n_bins      = len(bin_accs)
     bin_centers = np.linspace(1 / (2 * n_bins), 1 - 1 / (2 * n_bins), n_bins)
+    bin_width   = 1.0 / n_bins
 
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.plot([0, 1], [0, 1], "k--", label="Perfect calibration", linewidth=1.5)
-    ax.bar(bin_centers, bin_accs, width=1 / n_bins, alpha=0.6,
-           color="steelblue", label="Model", edgecolor="white")
-    ax.plot(bin_centers, bin_accs, "o-", color="steelblue", linewidth=2)
+    # IEEE single-column: 3.5 in square
+    fig, ax = plt.subplots(figsize=(3.5, 3.5))
 
-    ax.set_xlabel("Confidence (predicted probability)", fontsize=12)
-    ax.set_ylabel("Accuracy (fraction truly flooded)", fontsize=12)
-    ax.set_title(f"{title}\nECE = {ece:.4f}", fontsize=13)
-    ax.legend(fontsize=11)
+    # Gap fill: shade over-/under-confidence regions
+    ax.fill_between([0, 1], [0, 1], [1, 1], alpha=0.08,
+                    color="#d32f2f", label="Over-confident")
+    ax.fill_between([0, 1], [0, 0], [0, 1], alpha=0.08,
+                    color="#1565c0", label="Under-confident")
+
+    ax.bar(bin_centers, bin_accs, width=bin_width * 0.9, alpha=0.55,
+           color="#1976D2", label="Model", edgecolor="white", linewidth=0.5)
+    ax.plot(bin_centers, bin_accs, "o-", color="#0D47A1",
+            linewidth=1.5, markersize=4, zorder=5)
+    ax.plot([0, 1], [0, 1], "k--", linewidth=1.2,
+            label="Perfect calibration", zorder=4)
+
+    # ECE annotation — placed inside axes, top-left
+    ax.text(0.04, 0.93, f"ECE = {ece:.4f}",
+            transform=ax.transAxes, fontsize=9,
+            bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="0.7", alpha=0.9))
+
+    ax.set_xlabel("Confidence (predicted probability)")
+    ax.set_ylabel("Fraction of flood pixels")
+    ax.set_title(title)
+    ax.legend(fontsize=8, loc="lower right")
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    ax.grid(True, alpha=0.3)
+    ax.xaxis.set_major_locator(mticker.MultipleLocator(0.2))
+    ax.yaxis.set_major_locator(mticker.MultipleLocator(0.2))
 
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.tight_layout(pad=0.5)
+    plt.savefig(out_path, bbox_inches="tight")
     plt.close()
     print(f"  Saved: {out_path}")
 
@@ -163,21 +242,25 @@ def plot_coverage_accuracy(
         coverages.append(cov)
         accuracies.append(iou)
 
-    fig, ax = plt.subplots(figsize=(7, 5))
-    ax.plot(coverages, accuracies, "o-", color="steelblue", linewidth=2,
-            markersize=4, label="Model D (HAND + MC Dropout)")
-    ax.set_xlabel("Coverage (fraction of trusted pixels)", fontsize=12)
-    ax.set_ylabel("IoU (flood class, trusted pixels only)", fontsize=12)
-    ax.set_title("Coverage–Accuracy Tradeoff", fontsize=13)
+    # IEEE single-column width
+    fig, ax = plt.subplots(figsize=(3.5, 3.0))
+    ax.plot(coverages, accuracies, "o-", color="#1565C0",
+            linewidth=1.5, markersize=3.5,
+            label="Variant D (HAND gate + MC Dropout)")
+    ax.axvline(x=0.7, color="#9E9E9E", linestyle="--",
+               linewidth=1.0, alpha=0.8, label="Coverage = 0.70")
+
+    ax.set_xlabel("Coverage (fraction of trusted pixels)")
+    ax.set_ylabel("IoU on trusted pixels")
+    ax.set_title("Coverage–Accuracy Trade-off")
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    ax.axvline(x=0.7, color="gray", linestyle="--", alpha=0.5,
-               label="Coverage target (0.7)")
-    ax.legend(fontsize=10)
-    ax.grid(True, alpha=0.3)
+    ax.xaxis.set_major_locator(mticker.MultipleLocator(0.2))
+    ax.yaxis.set_major_locator(mticker.MultipleLocator(0.2))
+    ax.legend(fontsize=8)
 
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.tight_layout(pad=0.5)
+    plt.savefig(out_path, bbox_inches="tight")
     plt.close()
     print(f"  Saved: {out_path}")
 
@@ -203,24 +286,37 @@ def plot_iou_bar_chart(
     """
     events  = sorted(per_event_metrics.keys())
     values  = [per_event_metrics[e].get(metric, 0.0) for e in events]
-    colours = ["#2196F3" if v >= 0.5 else "#FF9800" for v in values]
 
-    fig, ax = plt.subplots(figsize=(8, max(4, len(events) * 0.5 + 1)))
-    bars = ax.barh(events, values, color=colours, edgecolor="white")
+    # Colour: green ≥ 0.5 (good), amber 0.3–0.5, red < 0.3
+    colours = []
+    for v in values:
+        if v >= 0.50:
+            colours.append("#2E7D32")   # dark green
+        elif v >= 0.30:
+            colours.append("#E65100")   # dark orange
+        else:
+            colours.append("#B71C1C")   # dark red
+
+    # Single-column width; height scales with number of events
+    fig, ax = plt.subplots(figsize=(3.5, max(2.8, len(events) * 0.32 + 0.8)))
+    bars = ax.barh(events, values, color=colours, edgecolor="white",
+                   linewidth=0.4, height=0.6)
 
     for bar, val in zip(bars, values):
-        ax.text(min(val + 0.01, 0.98), bar.get_y() + bar.get_height() / 2,
-                f"{val:.3f}", va="center", ha="left", fontsize=9)
+        ax.text(min(val + 0.01, 1.05), bar.get_y() + bar.get_height() / 2,
+                f"{val:.3f}", va="center", ha="left", fontsize=7.5,
+                color="#212121")
 
-    ax.set_xlabel(metric.upper(), fontsize=12)
-    ax.set_title(title, fontsize=13)
-    ax.set_xlim(0, 1.1)
-    ax.axvline(x=0.5, color="gray", linestyle="--", alpha=0.5, label="IoU = 0.5")
-    ax.legend(fontsize=9)
-    ax.grid(True, axis="x", alpha=0.3)
+    ax.set_xlabel(metric.upper())
+    ax.set_title(title)
+    ax.set_xlim(0, 1.12)
+    ax.axvline(x=0.5, color="#757575", linestyle="--",
+               linewidth=0.8, alpha=0.7, label=f"{metric.upper()} = 0.50")
+    ax.legend(fontsize=8)
+    ax.xaxis.set_major_locator(mticker.MultipleLocator(0.2))
 
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.tight_layout(pad=0.5)
+    plt.savefig(out_path, bbox_inches="tight")
     plt.close()
     print(f"  Saved: {out_path}")
 
@@ -251,33 +347,41 @@ def plot_risk_coverage_curve(
     if isinstance(rc_results, dict):
         rc_results = [rc_results]
 
-    colours = ["#2196F3", "#FF9800", "#4CAF50", "#E91E63"]
-    default_labels = ["Model A", "Model B", "Model C", "Model D"]
+    # Colour-blind-safe palette (Okabe–Ito)
+    colours = ["#0072B2", "#E69F00", "#009E73", "#CC79A7"]
+    markers = ["o", "s", "^", "D"]
+    default_labels = ["Variant A", "Variant B", "Variant C", "Variant D"]
 
-    fig, ax = plt.subplots(figsize=(7, 5))
+    # IEEE single-column width
+    fig, ax = plt.subplots(figsize=(3.5, 3.0))
 
     for idx, rc in enumerate(rc_results):
-        coverage = rc["coverage"]
-        risk     = rc["risk"]
+        coverage = np.asarray(rc["coverage"])
+        risk     = np.asarray(rc["risk"])
         aurc     = rc["aurc"]
-        label    = (variant_labels or default_labels)[idx] if \
-                   (variant_labels or default_labels) else f"Variant {idx}"
+        lbl      = (variant_labels or default_labels)[idx] \
+                   if (variant_labels or default_labels) else f"Variant {idx}"
         colour   = colours[idx % len(colours)]
+        marker   = markers[idx % len(markers)]
 
-        ax.plot(coverage, risk, "o-", color=colour, linewidth=2,
-                markersize=3, label=f"{label}  (AURC={aurc:.4f})")
+        ax.plot(coverage, risk, linestyle="-", marker=marker,
+                color=colour, linewidth=1.5, markersize=3,
+                markevery=max(1, len(coverage) // 10),
+                label=f"{lbl}  (AURC = {aurc:.4f})")
 
-    ax.set_xlabel("Coverage (fraction of trusted pixels)", fontsize=12)
-    ax.set_ylabel("Risk  (1 − IoU on trusted pixels)", fontsize=12)
-    ax.set_title("Risk–Coverage Curve", fontsize=13)
+    ax.set_xlabel("Coverage (fraction of pixels retained)")
+    ax.set_ylabel("Risk  (1 − IoU on retained pixels)")
+    ax.set_title("Risk–Coverage Curve")
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    ax.invert_xaxis()   # standard: high coverage (easy) on left → low coverage on right
-    ax.legend(fontsize=10, loc="upper right")
-    ax.grid(True, alpha=0.3)
+    # Standard convention: x-axis decreasing (most selective → least selective)
+    ax.invert_xaxis()
+    ax.xaxis.set_major_locator(mticker.MultipleLocator(0.2))
+    ax.yaxis.set_major_locator(mticker.MultipleLocator(0.2))
+    ax.legend(fontsize=7.5, loc="upper left")
 
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.tight_layout(pad=0.5)
+    plt.savefig(out_path, bbox_inches="tight")
     plt.close()
     print(f"  Saved: {out_path}")
 
@@ -303,31 +407,45 @@ def plot_ablation_table(
         out_path: save path
     """
     variants = ["A", "B", "C", "D"]
-    labels   = ["A\n(SAR only)", "B\n(+HAND band)", "C\n(+HAND gate)", "D\n(+MC Dropout)"]
-    metrics  = ["iou", "ece", "brier"]
-    titles   = ["IoU ↑", "ECE ↓", "Brier ↓"]
+    # Short labels to fit single-column width; use \n for two-line ticks
+    tick_labels = [
+        "A\n(SAR only)",
+        "B\n(+HAND band)",
+        "C\n(+HAND gate)",
+        "D\n(+HAND gate\n+MC Dropout)",
+    ]
+    metrics = ["iou", "f1", "ece", "brier"]
+    titles  = ["IoU ↑", "F1 ↑", "ECE ↓", "Brier Score ↓"]
 
     x = np.arange(len(variants))
 
-    fig, axes = plt.subplots(1, 3, figsize=(14, 5))
-    for ax, metric, title in zip(axes, metrics, titles):
+    # IEEE double-column: 4 panels, 7.16 in wide × 2.8 in tall
+    fig, axes = plt.subplots(1, 4, figsize=(7.16, 2.8))
+
+    # Okabe–Ito colour-blind-safe palette
+    base_colour = "#90CAF9"     # light blue for A/B/C
+    highlight   = "#1565C0"     # dark blue for D (our full model)
+
+    for ax, metric, mtitle in zip(axes, metrics, titles):
         vals    = [ablation_results.get(v, {}).get(metric, 0.0) for v in variants]
-        colours = ["#4CAF50" if v == "D" else "#90CAF9" for v in variants]
-        bars    = ax.bar(x, vals, color=colours, edgecolor="white", width=0.6)
+        colours = [highlight if v == "D" else base_colour for v in variants]
+        bars    = ax.bar(x, vals, color=colours, edgecolor="white",
+                         linewidth=0.4, width=0.65)
 
         for bar, val in zip(bars, vals):
             ax.text(bar.get_x() + bar.get_width() / 2,
-                    bar.get_height() + 0.005,
-                    f"{val:.3f}", ha="center", va="bottom", fontsize=9)
+                    bar.get_height() + max(vals or [0]) * 0.02,
+                    f"{val:.3f}", ha="center", va="bottom", fontsize=7.5)
 
         ax.set_xticks(x)
-        ax.set_xticklabels(labels, fontsize=9)
-        ax.set_title(title, fontsize=12)
-        ax.set_ylim(0, max(vals or [0.1]) * 1.25 + 0.05)
-        ax.grid(True, axis="y", alpha=0.3)
+        ax.set_xticklabels(tick_labels, fontsize=7.5)
+        ax.set_title(mtitle)
+        top = max(vals or [0.1]) * 1.30 + 0.02
+        ax.set_ylim(0, max(top, 0.12))
+        ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.2f"))
 
-    fig.suptitle("Ablation Study — All Variants", fontsize=14)
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=150, bbox_inches="tight")
+    fig.suptitle("Ablation Study — Bolivia OOD Test Set")
+    plt.tight_layout(pad=0.4)
+    plt.savefig(out_path, bbox_inches="tight")
     plt.close()
     print(f"  Saved: {out_path}")
