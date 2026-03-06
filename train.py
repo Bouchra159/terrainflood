@@ -351,12 +351,14 @@ def train(args: argparse.Namespace) -> None:
         print(f"  Val    loss={val_metrics['loss']:.4f}    iou={val_metrics['iou']:.4f}")
         print(f"  LR     {lr_now:.2e}")
 
-        # TensorBoard
-        writer.add_scalars("Loss", {"train": train_metrics["loss"],
-                                    "val":   val_metrics["loss"]},  epoch)
-        writer.add_scalars("IoU",  {"train": train_metrics["iou"],
-                                    "val":   val_metrics["iou"]},   epoch)
-        writer.add_scalar("LR", lr_now, epoch)
+        # TensorBoard — use add_scalar (not add_scalars) so all tags land
+        # in the main events file rather than per-tag subdirectories.
+        # Tags must match the _TAG_TO_COL mapping in tools/export_tb_curves.py.
+        writer.add_scalar("Loss/train", train_metrics["loss"], epoch)
+        writer.add_scalar("Loss/val",   val_metrics["loss"],   epoch)
+        writer.add_scalar("IoU/train",  train_metrics["iou"],  epoch)
+        writer.add_scalar("IoU/val",    val_metrics["iou"],    epoch)
+        writer.add_scalar("LR",         lr_now,                epoch)
 
         # Sample predictions every 5 epochs
         if (epoch + 1) % 5 == 0 and first_val_batch is not None:

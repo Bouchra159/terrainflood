@@ -53,7 +53,7 @@ It does NOT appear in `batch["image"]` and does NOT enter the model forward pass
 10. **Checkpoints save**: model weights + optimiser state + epoch + best val IoU + config dict.
 11. **6-band data tensor, 4-band encoder** — the dataset outputs 6 bands but the encoder uses 4 SAR channels (0–3). Channel 4 (VV_VH_ratio) is precomputed but not currently fed to the encoder. Channel 5 (HAND) is routed to the attention gate after denormalisation to metres. Any reference to "7-band" is outdated.
 12. **HAND gate physics** — `_prepare_hand()` must denormalise channel 5 from z-score to metres before passing to `HANDAttentionGate`. Constants: mean=9.346 m, std=28.330 m (from `norm_stats.json`). Never remove this denormalisation step.
-13. **Variant B must be retrained** if it was trained before `norm_stats.json` was computed (placeholder HAND mean=5, std=10). Check training log for the WARNING message.
+13. **norm_stats.json** must always be present at `data/sen1floods11/norm_stats.json`. All 4 variants have been trained with the correct values (mean=9.346 m, std=28.330 m). Do not revert or replace this file.
 
 ---
 
@@ -62,7 +62,7 @@ It does NOT appear in `batch["image"]` and does NOT enter the model forward pass
 - `01_gee_export.py` — GEE exports are complete
 - `06_exposure.py` — handles WorldPop post-prediction; pop does NOT go through the model
 - `run_experiment.py` — orchestration only
-- `jobs/train.sh` — SLURM script for DKUCC
+- `jobs/train_*.sbatch` — SLURM scripts for DKUCC (train_A/B/C/D.sbatch)
 
 ---
 
