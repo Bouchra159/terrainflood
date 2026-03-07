@@ -1,5 +1,3 @@
-# TerrainFlood-UQ — Master's Thesis Project
-
 **Physics-informed, uncertainty-aware deep learning for flood mapping from SAR satellite imagery.**
 
 ---
