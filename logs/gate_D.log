@@ -1,0 +1,64 @@
+Device: cuda
+Built Variant D: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+Loaded Variant D  epoch=2  best_iou=0.3362
+Split: test  |  Chips to visualise: 15
+Output: results/gate_maps_D
+
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (1 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Saved: results/gate_maps_D/Bolivia_Bolivia_103757_gate.png
+  [ 1/15] Bolivia_103757                  HAND=2.8m  α₀=0.581  α₃=0.410
+  Saved: results/gate_maps_D/Bolivia_Bolivia_129334_gate.png
+  [ 2/15] Bolivia_129334                  HAND=1.0m  α₀=0.701  α₃=0.562
+  Saved: results/gate_maps_D/Bolivia_Bolivia_195474_gate.png
+  [ 3/15] Bolivia_195474                  HAND=3.0m  α₀=0.435  α₃=0.293
+  Saved: results/gate_maps_D/Bolivia_Bolivia_23014_gate.png
+  [ 4/15] Bolivia_23014                   HAND=1.6m  α₀=0.373  α₃=0.399
+  Saved: results/gate_maps_D/Bolivia_Bolivia_233925_gate.png
+  [ 5/15] Bolivia_233925                  HAND=2.8m  α₀=0.312  α₃=0.431
+  Saved: results/gate_maps_D/Bolivia_Bolivia_242570_gate.png
+  [ 6/15] Bolivia_242570                  HAND=1.1m  α₀=0.412  α₃=0.506
+  Saved: results/gate_maps_D/Bolivia_Bolivia_290290_gate.png
+  [ 7/15] Bolivia_290290                  HAND=1.6m  α₀=0.459  α₃=0.364
+  Saved: results/gate_maps_D/Bolivia_Bolivia_294583_gate.png
+  [ 8/15] Bolivia_294583                  HAND=2.8m  α₀=0.463  α₃=0.342
+  Saved: results/gate_maps_D/Bolivia_Bolivia_312675_gate.png
+  [ 9/15] Bolivia_312675                  HAND=2.8m  α₀=0.434  α₃=0.330
+  Saved: results/gate_maps_D/Bolivia_Bolivia_314919_gate.png
+  [10/15] Bolivia_314919                  HAND=2.4m  α₀=0.579  α₃=0.467
+  Saved: results/gate_maps_D/Bolivia_Bolivia_360519_gate.png
+  [11/15] Bolivia_360519                  HAND=1.3m  α₀=0.356  α₃=0.356
+  Saved: results/gate_maps_D/Bolivia_Bolivia_379434_gate.png
+  [12/15] Bolivia_379434                  HAND=1.0m  α₀=0.439  α₃=0.336
+  Saved: results/gate_maps_D/Bolivia_Bolivia_432776_gate.png
+  [13/15] Bolivia_432776                  HAND=1.9m  α₀=0.600  α₃=0.496
+  Saved: results/gate_maps_D/Bolivia_Bolivia_60373_gate.png
+  [14/15] Bolivia_60373                   HAND=0.4m  α₀=0.340  α₃=0.397
+  Saved: results/gate_maps_D/Bolivia_Bolivia_76104_gate.png
+  [15/15] Bolivia_76104                   HAND=2.2m  α₀=0.247  α₃=0.375
+
+Gate summary → results/gate_maps_D/gate_summary.json
+Saved 15 gate map figures to results/gate_maps_D
+
+Physics check — gate suppression by HAND:
+  Chip                            HAND(m)      α₀      α₃
+  ----------------------------------------------------------
+  Bolivia_60373                       0.4   0.340   0.398
+  Bolivia_129334                      1.0   0.701   0.562
+  Bolivia_379434                      1.0   0.439   0.336
+  Bolivia_242570                      1.1   0.412   0.506
+  Bolivia_360519                      1.3   0.356   0.356
+  ...
+  Bolivia_233925                      2.8   0.312   0.431
+  Bolivia_103757                      2.8   0.581   0.410
+  Bolivia_195474                      3.0   0.435   0.293
+  Expected: higher HAND → lower α (gate suppresses high-elevation features)

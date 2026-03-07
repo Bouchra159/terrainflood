@@ -1,0 +1,5 @@
+=== JOB START ===
+dkucc-core-gpu-dkurc-a-it08-22.rc.duke.edu
+Thu Mar  5 03:41:41 AM EST 2026
+CUDA_VISIBLE_DEVICES=0
+PWD=/dkucc/home/bd159/terrainflood

@@ -1,0 +1,27 @@
+=== JOB START ===
+dkucc-core-gpu-dkurc-a-it08-22.rc.duke.edu
+Thu Mar  5 04:10:48 AM EST 2026
+CUDA_VISIBLE_DEVICES=0
+PWD=/dkucc/home/bd159/terrainflood
+
+============================================================
+  TerrainFlood-UQ  |  Variant B  |  cuda
+============================================================
+  Output  : checkpoints/variant_B
+  Data    : data/sen1floods11
+{
+  "variant": "B",
+  "lr": 0.0001,
+  "weight_decay": 0.0001,
+  "epochs": 50,
+  "batch_size": 8,
+  "patch_size": 256,
+  "loss_alpha": 0.5,
+  "pos_weight": 10.0,
+  "grad_clip": 1.0,
+  "early_stopping_patience": 10,
+  "seed": 42,
+  "data_root": "data/sen1floods11"
+}
+============================================================
+

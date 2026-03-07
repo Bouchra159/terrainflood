@@ -1,0 +1,246 @@
+=== JOB START ===
+dkucc-core-gpu-dkurc-a-it08-28.rc.duke.edu
+Thu Mar  5 02:01:23 PM EST 2026
+CUDA_VISIBLE_DEVICES=0
+PWD=/dkucc/home/bd159/terrainflood
+
+============================================================
+  TerrainFlood-UQ  |  Variant B  |  cuda
+============================================================
+  Output  : checkpoints/variant_B
+  Data    : data/sen1floods11
+{
+  "variant": "B",
+  "lr": 0.0001,
+  "weight_decay": 0.0001,
+  "epochs": 50,
+  "batch_size": 8,
+  "patch_size": 256,
+  "loss_alpha": 0.5,
+  "pos_weight": 10.0,
+  "grad_clip": 1.0,
+  "early_stopping_patience": 10,
+  "seed": 42,
+  "data_root": "data/sen1floods11"
+}
+============================================================
+
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (8 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+Built Variant B: {'total': 24344817, 'trainable': 24344817, 'encoder': 21284672, 'decoder': 3060145}
+TensorBoard: tensorboard --logdir checkpoints/variant_B/runs
+
+
+[Epoch 001/050]
+  Train  loss=1.3635  iou=0.3704
+  Val    loss=1.0314    iou=0.0943
+  LR     1.00e-04
+  ✓ New best IoU: 0.0943
+
+[Epoch 002/050]
+  Train  loss=1.2140  iou=0.3755
+  Val    loss=0.9979    iou=0.0943
+  LR     9.99e-05
+
+[Epoch 003/050]
+  Train  loss=1.0781  iou=0.3557
+  Val    loss=1.0063    iou=0.0943
+  LR     9.96e-05
+
+[Epoch 004/050]
+  Train  loss=1.0202  iou=0.3366
+  Val    loss=0.9592    iou=0.0944
+  LR     9.91e-05
+  ✓ New best IoU: 0.0944
+
+[Epoch 005/050]
+  Train  loss=0.9672  iou=0.3906
+  Val    loss=0.9186    iou=0.0983
+  LR     9.84e-05
+  ✓ New best IoU: 0.0983
+
+[Epoch 006/050]
+  Train  loss=0.8802  iou=0.4094
+  Val    loss=0.8949    iou=0.1181
+  LR     9.76e-05
+  ✓ New best IoU: 0.1181
+
+[Epoch 007/050]
+  Train  loss=0.8423  iou=0.4580
+  Val    loss=0.8558    iou=0.1635
+  LR     9.65e-05
+  ✓ New best IoU: 0.1635
+
+[Epoch 008/050]
+  Train  loss=0.7890  iou=0.4896
+  Val    loss=0.8478    iou=0.1732
+  LR     9.53e-05
+  ✓ New best IoU: 0.1732
+
+[Epoch 009/050]
+  Train  loss=0.7872  iou=0.4674
+  Val    loss=0.9125    iou=0.1098
+  LR     9.39e-05
+
+[Epoch 010/050]
+  Train  loss=0.7271  iou=0.5154
+  Val    loss=0.8299    iou=0.1655
+  LR     9.23e-05
+
+[Epoch 011/050]
+  Train  loss=0.7043  iou=0.5382
+  Val    loss=0.7575    iou=0.2023
+  LR     9.05e-05
+  ✓ New best IoU: 0.2023
+
+[Epoch 012/050]
+  Train  loss=0.6701  iou=0.5707
+  Val    loss=0.7721    iou=0.2229
+  LR     8.86e-05
+  ✓ New best IoU: 0.2229
+
+[Epoch 013/050]
+  Train  loss=0.6417  iou=0.5864
+  Val    loss=0.8084    iou=0.1902
+  LR     8.66e-05
+
+[Epoch 014/050]
+  Train  loss=0.6414  iou=0.5839
+  Val    loss=0.7819    iou=0.2246
+  LR     8.44e-05
+  ✓ New best IoU: 0.2246
+
+[Epoch 015/050]
+  Train  loss=0.6154  iou=0.6092
+  Val    loss=0.7858    iou=0.2081
+  LR     8.21e-05
+
+[Epoch 016/050]
+  Train  loss=0.5860  iou=0.6237
+  Val    loss=0.7829    iou=0.2081
+  LR     7.96e-05
+
+[Epoch 017/050]
+  Train  loss=0.6085  iou=0.5876
+  Val    loss=0.7922    iou=0.2108
+  LR     7.70e-05
+
+[Epoch 018/050]
+  Train  loss=0.5839  iou=0.6127
+  Val    loss=0.7697    iou=0.2377
+  LR     7.43e-05
+  ✓ New best IoU: 0.2377
+
+[Epoch 019/050]
+  Train  loss=0.5730  iou=0.6109
+  Val    loss=0.6983    iou=0.2652
+  LR     7.16e-05
+  ✓ New best IoU: 0.2652
+
+[Epoch 020/050]
+  Train  loss=0.5524  iou=0.6289
+  Val    loss=0.7404    iou=0.2426
+  LR     6.87e-05
+
+[Epoch 021/050]
+  Train  loss=0.5230  iou=0.6466
+  Val    loss=0.7168    iou=0.2731
+  LR     6.58e-05
+  ✓ New best IoU: 0.2731
+
+[Epoch 022/050]
+  Train  loss=0.5444  iou=0.6350
+  Val    loss=0.6766    iou=0.2793
+  LR     6.28e-05
+  ✓ New best IoU: 0.2793
+
+[Epoch 023/050]
+  Train  loss=0.5275  iou=0.6568
+  Val    loss=0.7126    iou=0.2566
+  LR     5.98e-05
+
+[Epoch 024/050]
+  Train  loss=0.5216  iou=0.6669
+  Val    loss=0.6881    iou=0.2793
+  LR     5.67e-05
+  ✓ New best IoU: 0.2793
+
+[Epoch 025/050]
+  Train  loss=0.5196  iou=0.6613
+  Val    loss=0.7442    iou=0.2229
+  LR     5.36e-05
+
+[Epoch 026/050]
+  Train  loss=0.5432  iou=0.6511
+  Val    loss=0.6682    iou=0.2574
+  LR     5.05e-05
+
+[Epoch 027/050]
+  Train  loss=0.5029  iou=0.6975
+  Val    loss=0.6170    iou=0.3249
+  LR     4.74e-05
+  ✓ New best IoU: 0.3249
+
+[Epoch 028/050]
+  Train  loss=0.4801  iou=0.6824
+  Val    loss=0.6662    iou=0.2574
+  LR     4.43e-05
+
+[Epoch 029/050]
+  Train  loss=0.4974  iou=0.6697
+  Val    loss=0.6221    iou=0.3046
+  LR     4.12e-05
+
+[Epoch 030/050]
+  Train  loss=0.5203  iou=0.6319
+  Val    loss=0.6781    iou=0.2470
+  LR     3.82e-05
+
+[Epoch 031/050]
+  Train  loss=0.4643  iou=0.6906
+  Val    loss=0.6189    iou=0.3121
+  LR     3.52e-05
+
+[Epoch 032/050]
+  Train  loss=0.4435  iou=0.7081
+  Val    loss=0.6743    iou=0.2374
+  LR     3.23e-05
+
+[Epoch 033/050]
+  Train  loss=0.4806  iou=0.6681
+  Val    loss=0.6529    iou=0.2914
+  LR     2.94e-05
+
+[Epoch 034/050]
+  Train  loss=0.4600  iou=0.6880
+  Val    loss=0.6648    iou=0.2644
+  LR     2.67e-05
+
+[Epoch 035/050]
+  Train  loss=0.4580  iou=0.6932
+  Val    loss=0.6182    iou=0.2944
+  LR     2.40e-05
+
+[Epoch 036/050]
+  Train  loss=0.4550  iou=0.7091
+  Val    loss=0.6478    iou=0.2724
+  LR     2.14e-05
+
+[Epoch 037/050]
+  Train  loss=0.4518  iou=0.6990
+  Val    loss=0.6415    iou=0.2756
+  LR     1.89e-05
+
+Early stopping (patience=10)
+
+============================================================
+  Done. Best val IoU: 0.3249
+  Checkpoints: checkpoints/variant_B
+============================================================
+

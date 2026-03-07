@@ -28,7 +28,6 @@ datasets/
 # ─── TensorBoard event files and SLURM logs ───────────────────
 # Regenerable from training. Do not commit.
 **/runs/
-logs/
 
 # ─── Per-chip prediction maps (many large PNGs, regenerable) ──
 # Per-chip flood maps, gate maps etc. can be hundreds of files.
@@ -48,3 +47,4 @@ run_summary.md
 *.egg-info/
 dist/
 build/
+!logs/

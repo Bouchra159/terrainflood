@@ -1,0 +1,46 @@
+
+Device: cuda
+Checkpoint: checkpoints/variant_D/best.pt
+MC samples T=20
+
+Built Variant D: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+Loaded Variant D from epoch 2 (best val IoU=0.3362)
+
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+Finding optimal temperature on val set (Ecuador + Paraguay)...
+Collecting logits:   0%|          | 0/67 [00:00<?, ?it/s]Collecting logits:   1%|▏         | 1/67 [00:00<00:33,  1.98it/s]Collecting logits:  19%|█▉        | 13/67 [00:00<00:01, 27.69it/s]Collecting logits:  37%|███▋      | 25/67 [00:00<00:00, 48.98it/s]Collecting logits:  54%|█████▎    | 36/67 [00:00<00:00, 63.13it/s]Collecting logits:  69%|██████▊   | 46/67 [00:00<00:00, 71.04it/s]Collecting logits:  84%|████████▎ | 56/67 [00:01<00:00, 77.20it/s]Collecting logits: 100%|██████████| 67/67 [00:01<00:00, 85.00it/s]Collecting logits: 100%|██████████| 67/67 [00:01<00:00, 57.36it/s]
+  Optimal temperature T = 0.1000
+  Saved → results/uncertainty_D/temperature.json
+MC Dropout (T=20):   0%|          | 0/15 [00:00<?, ?it/s]MC Dropout (T=20):   7%|▋         | 1/15 [00:00<00:05,  2.71it/s]MC Dropout (T=20):  13%|█▎        | 2/15 [00:00<00:03,  3.95it/s]MC Dropout (T=20):  20%|██        | 3/15 [00:00<00:02,  4.61it/s]MC Dropout (T=20):  27%|██▋       | 4/15 [00:00<00:02,  4.88it/s]MC Dropout (T=20):  33%|███▎      | 5/15 [00:01<00:01,  5.04it/s]MC Dropout (T=20):  40%|████      | 6/15 [00:01<00:01,  5.18it/s]MC Dropout (T=20):  47%|████▋     | 7/15 [00:01<00:01,  5.39it/s]MC Dropout (T=20):  53%|█████▎    | 8/15 [00:01<00:01,  5.58it/s]MC Dropout (T=20):  60%|██████    | 9/15 [00:01<00:01,  5.56it/s]MC Dropout (T=20):  67%|██████▋   | 10/15 [00:01<00:00,  5.69it/s]MC Dropout (T=20):  73%|███████▎  | 11/15 [00:02<00:00,  5.79it/s]MC Dropout (T=20):  80%|████████  | 12/15 [00:02<00:00,  5.84it/s]MC Dropout (T=20):  87%|████████▋ | 13/15 [00:02<00:00,  5.89it/s]MC Dropout (T=20):  93%|█████████▎| 14/15 [00:02<00:00,  5.83it/s]MC Dropout (T=20): 100%|██████████| 15/15 [00:02<00:00,  5.76it/s]MC Dropout (T=20): 100%|██████████| 15/15 [00:02<00:00,  5.27it/s]
+
+Processed 15 chips
+
+  Applying temperature scaling (T=0.1000) to mean_prob...
+Computing calibration metrics...
+
+==================================================
+ECE before calibration : 0.3632
+ECE after  calibration : 0.0775  (T=0.1000)
+Overall Brier : 0.0533
+Mean variance : 0.0004
+==================================================
+
+Per-event ECE:
+  Bolivia         ECE=0.0775  Brier=0.0533
+
+Metrics saved → results/uncertainty_D/uncertainty_metrics.json
+  Saved: results/uncertainty_D/reliability_diagram.png
+
+Saving uncertainty maps for first 15 chips...
+
+Done. Results in results/uncertainty_D
