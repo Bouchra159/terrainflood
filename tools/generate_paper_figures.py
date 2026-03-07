@@ -343,14 +343,19 @@ def make_bootstrap_ci_figure(results_dir: Path, out_dir: Path) -> None:
     stats = _load(results_dir / "stats" / "ablation_stats.json")
     abl   = _load(results_dir / "ablation" / "ablation_metrics.json")
 
-    variants      = ["A", "B", "C", "D"]
-    full_labels   = [
-        "A — SAR baseline",
-        "B — +HAND band",
-        "C — +HAND gate",
-        "D — +HAND gate\n     +MC Dropout",
-    ]
-    colours = ["#90CAF9", "#90CAF9", "#90CAF9", "#1565C0"]
+    _all_labels = {
+        "A": "A — SAR baseline",
+        "B": "B — +HAND band",
+        "C": "C — +HAND gate",
+        "D": "D — +HAND gate\n     +MC Dropout",
+        "E": "E — +Siamese diff",
+    }
+    _highlight = {"D": "#1565C0", "E": "#0D47A1"}
+    # Only include variants present in both ablation and stats JSONs
+    variants    = [v for v in ["A", "B", "C", "D", "E"]
+                   if v in abl and v in stats.get("variants", {})]
+    full_labels = [_all_labels.get(v, v) for v in variants]
+    colours     = [_highlight.get(v, "#90CAF9") for v in variants]
 
     y_pos  = np.arange(len(variants))
     iou_obs = [abl[v]["iou"] for v in variants]
@@ -400,18 +405,16 @@ def make_mcnemar_figure(results_dir: Path, out_dir: Path) -> None:
     stats   = _load(results_dir / "stats" / "ablation_stats.json")
     tests   = stats["mcnemar"]
 
-    variants = ["A", "B", "C", "D"]
+    # Build variant list from ablation JSON — includes E when available
+    variants = [v for v in ["A", "B", "C", "D", "E"] if v in abl]
     n = len(variants)
     mat = np.full((n, n), np.nan)
-
-    pair_map = {
-        ("A","B"): 0, ("B","C"): 1, ("C","D"): 2,
-        ("A","C"): 3, ("A","D"): 4,
-    }
 
     for t in tests:
         la = t["label_a"].replace("Variant_", "")
         lb = t["label_b"].replace("Variant_", "")
+        if la not in variants or lb not in variants:
+            continue          # skip pairs not in evaluated set
         ri = variants.index(la)
         ci = variants.index(lb)
         # net improvement: positive = B > A

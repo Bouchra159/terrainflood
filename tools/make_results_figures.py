@@ -99,6 +99,7 @@ _VARIANT_LABELS = {
     "B": "Var. B\n(+HAND band)",
     "C": "Var. C\n(+HAND gate)",
     "D": "Var. D\n(gate + MC)",
+    "E": "Var. E\n(Siamese diff)",
 }
 
 
@@ -149,8 +150,9 @@ def fig01_ablation_comprehensive(ablation: Dict, out: Path,
         - IoU panel shows 95% CI bootstrap error bars (chip-level)
         - McNemar significance stars annotated between key pairs
     """
-    variants = ["A", "B", "C", "D"]
-    tick_labels = [_VARIANT_LABELS[v] for v in variants]
+    # Only include variants present in the ablation results dict
+    variants = [v for v in ["A", "B", "C", "D", "E"] if v in ablation]
+    tick_labels = [_VARIANT_LABELS.get(v, v) for v in variants]
     metrics = [
         ("iou",    "IoU ↑",         False),
         ("f1",     "F1 ↑",          False),
@@ -378,12 +380,12 @@ def fig03_training_curves_all(curves_dir: Path, out: Path) -> None:
                  y=1.01)
 
     linestyles = {"A": (0, (5, 2)), "B": (0, (3, 1, 1, 1)),
-                  "C": "-", "D": "-"}
-    markers    = {"A": "o", "B": "s", "C": "^", "D": "D"}
-    markevery  = {"A": 10, "B": 8, "C": 4, "D": 4}
+                  "C": "-", "D": "-", "E": "--"}
+    markers    = {"A": "o", "B": "s", "C": "^", "D": "D", "E": "P"}
+    markevery  = {"A": 10, "B": 8, "C": 4, "D": 4, "E": 4}
 
     any_plotted = False
-    for v in ["A", "B", "C", "D"]:
+    for v in ["A", "B", "C", "D", "E"]:
         csv_path = curves_dir / f"variant_{v}_scalars.csv"
         if not csv_path.exists():
             print(f"    [SKIP] {csv_path.name}")

@@ -482,11 +482,12 @@ def run_uncertainty(args):
     (out_dir / "maps").mkdir(parents=True, exist_ok=True)
 
     # Load model
-    ckpt    = torch.load(args.checkpoint, map_location=device)
-    config  = ckpt.get("config", {})
-    variant = config.get("variant", "D")
+    ckpt         = torch.load(args.checkpoint, map_location=device)
+    config       = ckpt.get("config", {})
+    variant      = config.get("variant", "D")
+    dropout_rate = config.get("dropout_rate", None)  # None → use variant default
 
-    model = build_model(variant=variant, pretrained=False)
+    model = build_model(variant=variant, pretrained=False, dropout_rate=dropout_rate)
     model.load_state_dict(ckpt["model_state"])
     model = model.to(device)
     print(f"Loaded Variant {variant} from epoch {ckpt['epoch']} "
@@ -587,6 +588,17 @@ def run_uncertainty(args):
             out_path   = str(out_dir / "maps" / fname),
         )
 
+    # Save per-chip numpy arrays for exposure_tau_sweep.py
+    if getattr(args, "save_arrays", False):
+        arrays_saved = 0
+        for r in results:
+            cid = r["chip_id"]
+            np.save(str(out_dir / f"chip_{cid}_mean.npy"), r["mean_prob"])
+            np.save(str(out_dir / f"chip_{cid}_var.npy"),  r["variance"])
+            arrays_saved += 1
+        print(f"  Saved {arrays_saved * 2} numpy arrays "
+              f"(chip_*_mean.npy / chip_*_var.npy) → {out_dir}")
+
     print(f"\nDone. Results in {out_dir}")
     return results, metrics
 
@@ -616,6 +628,10 @@ def parse_args():
                         "(Teye et al. 2018). Uses batch statistics instead of running "
                         "statistics, providing ~10–100× larger predictive variance. "
                         "Requires batch_size >= 4 for stable BN statistics.")
+    p.add_argument("--save_arrays", action="store_true",
+                   help="Save per-chip mean_prob and variance as numpy arrays "
+                        "({out_dir}/chip_{chip_id}_mean.npy and _var.npy). "
+                        "Required by tools/exposure_tau_sweep.py.")
     return p.parse_args()
 
 

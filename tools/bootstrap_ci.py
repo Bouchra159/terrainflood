@@ -515,16 +515,17 @@ def run_ablation(args: argparse.Namespace, device: torch.device) -> None:
     """
     Full ablation: bootstrap CI for all variants + all pairwise McNemar tests.
     Expects checkpoints at:
-        checkpoints_dir/variant_A/best.pt
-        checkpoints_dir/variant_B/best.pt
-        checkpoints_dir/variant_C/best.pt
-        checkpoints_dir/variant_D/best.pt
+        checkpoints_dir/variant_A/best.pt  (required)
+        checkpoints_dir/variant_B/best.pt  (required)
+        checkpoints_dir/variant_C/best.pt  (required)
+        checkpoints_dir/variant_D/best.pt  (required)
+        checkpoints_dir/variant_E/best.pt  (optional — skipped if absent)
     """
     out_dir       = Path(args.output_dir)
     ckpt_dir      = Path(args.checkpoints_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    variants = ["A", "B", "C", "D"]
+    variants = ["A", "B", "C", "D", "E"]
     variant_chips: dict[str, list[dict]] = {}
     results:       dict[str, dict]       = {}
 

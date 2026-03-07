@@ -266,6 +266,7 @@ def train(args: argparse.Namespace) -> None:
 
     config = {
         "variant":                    args.variant,
+        "dropout_rate":               args.dropout_rate,   # None = variant default
         "lr":                         args.lr,
         "weight_decay":               args.weight_decay,
         "epochs":                     args.epochs,
@@ -297,7 +298,8 @@ def train(args: argparse.Namespace) -> None:
     )
 
     # ── Model
-    model = build_model(variant=args.variant, pretrained=args.pretrained)
+    model = build_model(variant=args.variant, pretrained=args.pretrained,
+                        dropout_rate=args.dropout_rate)
     model = model.to(device)
 
     # ── Loss
@@ -421,6 +423,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--seed",       type=int,   default=42)
     p.add_argument("--fast_dev_run", action="store_true",
                    help="Run only 2 batches per epoch (smoke test)")
+    p.add_argument("--dropout_rate", type=float, default=None,
+                   help="Override variant default MC Dropout rate "
+                        "(e.g. 0.5 for D-prime). None = use variant default.")
     return p.parse_args()
 
 

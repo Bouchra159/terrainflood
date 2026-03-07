@@ -690,17 +690,29 @@ class FloodLoss(nn.Module):
 # ─────────────────────────────────────────────────────────────
 
 def build_model(variant: str = "D",
-                pretrained: bool = True) -> FloodSegmentationModel:
+                pretrained: bool = True,
+                dropout_rate: Optional[float] = None) -> FloodSegmentationModel:
     """
-    Factory for the 4 ablation variants.
+    Factory for the ablation variants.
 
     Variant A — SAR only baseline (no HAND, no UQ)
     Variant B — HAND as extra input band (no gate, no UQ)
     Variant C — HAND gate, no MC Dropout
-    Variant D — Full model: HAND gate + MC Dropout  ← paper submission
+    Variant D — Full model: HAND gate + MC Dropout  (default dropout=0.3)
+    Variant E — True Siamese diff + HAND gate + MC Dropout
+
+    Args:
+        variant:      One of A / B / C / D / E.
+        pretrained:   Load ImageNet weights for ResNet-34 encoder.
+        dropout_rate: Optional override for the variant's default dropout rate.
+                      Pass e.g. 0.5 to train D-prime without changing the variant
+                      letter.  None (default) uses the variant's built-in value.
+                      Stored in checkpoint config so eval/uncertainty scripts can
+                      reconstruct the exact model that was trained.
 
     Usage:
-        model = build_model("D")
+        model = build_model("D")                        # standard D, dropout=0.3
+        model = build_model("D", dropout_rate=0.5)      # D-prime, dropout=0.5
         print(model.count_parameters())
     """
     configs = {
@@ -718,7 +730,11 @@ def build_model(variant: str = "D",
     if variant not in configs:
         raise ValueError(f"Variant must be A/B/C/D/E, got '{variant}'")
 
-    model = FloodSegmentationModel(pretrained=pretrained, **configs[variant])
+    cfg = dict(configs[variant])                # copy — do not mutate the table
+    if dropout_rate is not None:
+        cfg["dropout_rate"] = dropout_rate      # apply caller override
+
+    model = FloodSegmentationModel(pretrained=pretrained, **cfg)
     print(f"Built Variant {variant}: {model.count_parameters()}")
     return model
 
@@ -731,10 +747,10 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}\n")
 
-    # Test all 4 variants — 6-band input (no pop_log)
+    # Test all variants — 6-band input (no pop_log)
     batch = torch.randn(2, 6, 256, 256).to(device)
 
-    for variant in ["A", "B", "C", "D"]:
+    for variant in ["A", "B", "C", "D", "E"]:
         model = build_model(variant, pretrained=False).to(device)
         model.train()
 

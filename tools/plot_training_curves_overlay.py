@@ -274,7 +274,7 @@ def main() -> None:
 
     _set_pub_style()
 
-    variant_names = ["A", "B", "C", "D"]
+    variant_names = ["A", "B", "C", "D", "E"]
 
     # Resolve CSV paths
     if args.curves_dir:
@@ -289,6 +289,7 @@ def main() -> None:
             "B": Path(args.csv_B) if args.csv_B else None,
             "C": Path(args.csv_C) if args.csv_C else None,
             "D": Path(args.csv_D) if args.csv_D else None,
+            "E": None,  # no standalone --csv_E arg; use --curves_dir instead
         }
 
     dataframes = []
@@ -301,7 +302,7 @@ def main() -> None:
     if loaded == 0:
         print("ERROR: No CSV files found. Run export_tb_curves.py first.")
         sys.exit(1)
-    print(f"Loaded {loaded}/4 variant CSVs.")
+    print(f"Loaded {loaded}/{len(variant_names)} variant CSVs.")
 
     out_path = Path(args.out_dir) / args.out_name
     plot_overlay(dataframes, variant_names, out_path)

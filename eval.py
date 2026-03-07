@@ -257,11 +257,12 @@ def evaluate_checkpoint(
         results: list of per-chip dicts from mc_dropout_inference()
         metrics: nested dict with overall / per_event / calibration
     """
-    ckpt    = torch.load(ckpt_path, map_location=device)
-    config  = ckpt.get("config", {})
-    variant = config.get("variant", "D")
+    ckpt         = torch.load(ckpt_path, map_location=device)
+    config       = ckpt.get("config", {})
+    variant      = config.get("variant", "D")
+    dropout_rate = config.get("dropout_rate", None)  # None → use variant default
 
-    model = build_model(variant=variant, pretrained=False)
+    model = build_model(variant=variant, pretrained=False, dropout_rate=dropout_rate)
     model.load_state_dict(ckpt["model_state"])
     model = model.to(device)
 
@@ -561,7 +562,7 @@ def run_ablation(args: argparse.Namespace) -> None:
     # Print table
     print(f"\n{'Variant':<10} {'IoU':>8} {'F1':>8} {'ECE':>8} {'Brier':>8}")
     print("-" * 46)
-    for v in ["A", "B", "C", "D"]:
+    for v in ["A", "B", "C", "D", "E"]:
         if v in ablation:
             m = ablation[v]
             print(f"  {v:<8} {m['iou']:>8.4f} {m['f1']:>8.4f} "
