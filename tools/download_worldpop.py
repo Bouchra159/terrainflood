@@ -406,11 +406,31 @@ def main(args: argparse.Namespace) -> None:
 
     print(f"\nRequired country rasters: {sorted(needed_isos)}")
 
-    # Download country rasters
+    # Download country rasters — or use a manually supplied file
     cache_dir = data_root / ".worldpop_cache"
     raster_map: dict[str, Path | None] = {}
-    for iso in needed_isos:
-        raster_map[iso] = download_country_raster(iso, cache_dir, force=args.force)
+
+    manual_raster = getattr(args, "manual_raster", None)
+    if manual_raster is not None:
+        # --manual_raster bypasses the download step entirely.
+        # Must apply to exactly the ISOs requested.
+        manual_path = Path(manual_raster)
+        if not manual_path.exists():
+            raise FileNotFoundError(
+                f"--manual_raster file not found: {manual_path}\n"
+                f"Check the path and try again."
+            )
+        if len(needed_isos) != 1:
+            raise ValueError(
+                f"--manual_raster requires exactly one event/country, "
+                f"but found: {needed_isos}.  Run with a single --events value."
+            )
+        iso = next(iter(needed_isos))
+        print(f"  [Manual] Using provided raster for {iso}: {manual_path}")
+        raster_map[iso] = manual_path
+    else:
+        for iso in needed_isos:
+            raster_map[iso] = download_country_raster(iso, cache_dir, force=args.force)
 
     # Crop to each chip
     print(f"\nCropping to {len(chips_to_process)} chips...")
@@ -503,6 +523,18 @@ def _parse_args() -> argparse.Namespace:
                    help="Re-download and re-crop even if files exist")
     p.add_argument("--check",       action="store_true",
                    help="Check which chips have pop data (no download)")
+    p.add_argument("--manual_raster", type=str, default=None,
+                   help="Path to a manually pre-downloaded country WorldPop GeoTIFF "
+                        "(bypasses network download — solves DKUCC cluster firewall). "
+                        "Must correspond to the single event specified in --events. "
+                        "Download the file on your laptop, then:\n"
+                        "  scp ~/Downloads/bol_ppp_2020_constrained.tif dkucc:/scratch/user/\n"
+                        "  python tools/download_worldpop.py --events Bolivia "
+                        "--manual_raster /scratch/user/bol_ppp_2020_constrained.tif\n"
+                        "WorldPop URL for Bolivia (2020 constrained):\n"
+                        "  https://data.worldpop.org/GIS/Population/"
+                        "Global_2000_2020_Constrained/2020/BSGM/BOL/"
+                        "bol_ppp_2020_constrained.tif")
     return p.parse_args()
 
 

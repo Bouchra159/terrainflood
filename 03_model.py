@@ -339,14 +339,37 @@ class FloodSegmentationModel(nn.Module):
 
     # ── MC Dropout control ───────────────────────────────────
 
-    def enable_dropout(self):
+    def enable_dropout(self, include_bn: bool = False) -> None:
         """
         Call this before MC Dropout inference to ensure Dropout2d layers
         are active even when the rest of the model is in eval mode.
 
+        Args:
+            include_bn: If True, also set all BatchNorm2d layers to train mode.
+                        This makes batch statistics stochastic across MC passes
+                        (Teye et al. 2018 — "Bayesian Uncertainty Estimation for
+                        Batch Normalised Deep Networks").  With include_bn=True
+                        the running mean/var are ignored; each forward pass uses
+                        the current-batch statistics instead, propagating extra
+                        variance through the full encoder + decoder.
+
+                        Expected effect on Variant D:
+                          include_bn=False  →  mean_variance ≈ 0.0004  (current)
+                          include_bn=True   →  mean_variance ≈ 0.01–0.05 (10–100×)
+
+                        Warning: requires batch_size ≥ 4 per MC pass for stable
+                        BN statistics.  Evaluate with the same batch size used
+                        during training (8).  Not recommended with batch_size=1.
+
+                        Recommended workflow on DKUCC:
+                            model.eval()
+                            model.enable_dropout(include_bn=True)
+                            # run 05_uncertainty.py with --include_bn flag
+
         Usage:
             model.eval()
-            model.enable_dropout()
+            model.enable_dropout()              # standard MC Dropout
+            model.enable_dropout(include_bn=True)  # BN-stochastic MC
             with torch.no_grad():
                 for t in range(T):
                     logits = model(batch)
@@ -354,6 +377,8 @@ class FloodSegmentationModel(nn.Module):
         for module in self.modules():
             if isinstance(module, nn.Dropout2d):
                 module.train()
+            if include_bn and isinstance(module, nn.BatchNorm2d):
+                module.train()   # use batch stats instead of running stats
 
     # ── HAND preparation ─────────────────────────────────────
 

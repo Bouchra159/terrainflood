@@ -66,24 +66,35 @@ from dataset import get_dataloaders  # noqa: E402
 
 @torch.no_grad()
 def mc_dropout_inference(
-    model:    torch.nn.Module,
-    loader:   torch.utils.data.DataLoader,
-    device:   torch.device,
-    T:        int = 20,
+    model:      torch.nn.Module,
+    loader:     torch.utils.data.DataLoader,
+    device:     torch.device,
+    T:          int  = 20,
+    include_bn: bool = False,
 ) -> list[dict]:
     """
     Runs T stochastic forward passes per batch with dropout active.
 
-    Returns a dict of per-chip results:
+    Args:
+        model:      FloodSegmentationModel (Variant D)
+        loader:     DataLoader for the evaluation split
+        device:     torch device
+        T:          number of MC Dropout forward passes
+        include_bn: if True, BatchNorm2d layers also use batch statistics
+                    (Teye et al. 2018).  Provides 10–100× larger variance.
+                    Requires batch_size >= 4 for stable BN stats.
+
+    Returns a list of per-chip dicts:
       mean_prob  : (H, W) float32 — predictive mean flood probability
       variance   : (H, W) float32 — predictive variance (uncertainty)
       label      : (H, W) int16   — ground truth label
       event      : str            — flood event name
       chip_id    : str            — chip identifier
     """
-    # Keep dropout active, disable batchnorm updates
     model.eval()
-    model.enable_dropout()
+    model.enable_dropout(include_bn=include_bn)
+    if include_bn:
+        print(f"  [MC] BN-stochastic mode enabled (Teye et al. 2018)")
 
     results = []
 
@@ -500,7 +511,9 @@ def run_uncertainty(args):
         print(f"  Saved → {temp_path}")
 
     # MC Dropout inference
-    results = mc_dropout_inference(model, test_loader, device, T=args.T)
+    include_bn = getattr(args, "include_bn", False)
+    results = mc_dropout_inference(model, test_loader, device,
+                                   T=args.T, include_bn=include_bn)
     print(f"\nProcessed {len(results)} chips\n")
 
     # Apply temperature scaling to mean_prob if calibration was run
@@ -598,6 +611,11 @@ def parse_args():
                    help="Number of uncertainty map figures to save")
     p.add_argument("--calibrate",    action="store_true",
                    help="Find optimal temperature T on val set and apply to test predictions")
+    p.add_argument("--include_bn",   action="store_true",
+                   help="Set BatchNorm2d layers to train mode during MC passes "
+                        "(Teye et al. 2018). Uses batch statistics instead of running "
+                        "statistics, providing ~10–100× larger predictive variance. "
+                        "Requires batch_size >= 4 for stable BN statistics.")
     return p.parse_args()
 
 
