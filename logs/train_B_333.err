@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/dkucc/home/bd159/terrainflood/train.py", line 427, in <module>
+    train(args)
+  File "/dkucc/home/bd159/terrainflood/train.py", line 291, in train
+    train_loader, val_loader, _ = get_dataloaders(
+  File "/dkucc/home/bd159/terrainflood/02_dataset.py", line 399, in get_dataloaders
+    train_ds = FloodDataset(data_root, split="train", patch_size=patch_size)
+  File "/dkucc/home/bd159/terrainflood/02_dataset.py", line 120, in __init__
+    self.samples = self._discover_samples()
+  File "/dkucc/home/bd159/terrainflood/02_dataset.py", line 163, in _discover_samples
+    raise RuntimeError(
+RuntimeError: No chips found for split='train' in data/sen1floods11/flood_events
+Check that SPLIT_MAP matches your downloaded events.

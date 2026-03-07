@@ -1,0 +1,6 @@
+usage: run_experiment.py [-h] [--data_root DATA_ROOT] [--pop_dir POP_DIR]
+                         [--epochs EPOCHS] [--batch_size BATCH_SIZE]
+                         [--num_workers NUM_WORKERS] [--T T] [--n_maps N_MAPS]
+                         [--fast] [--eval_only] [--skip_uncertainty]
+                         [--skip_exposure]
+run_experiment.py: error: unrecognized arguments: --mode B

@@ -1,0 +1,102 @@
+=== JOB START ===
+dkucc-core-gpu-dkurc-a-it08-22.rc.duke.edu
+Thu Mar  5 05:05:07 AM EST 2026
+CUDA_VISIBLE_DEVICES=0
+PWD=/dkucc/home/bd159/terrainflood
+
+============================================================
+  TerrainFlood-UQ  |  Variant B  |  cuda
+============================================================
+  Output  : checkpoints/variant_B
+  Data    : data/sen1floods11
+{
+  "variant": "B",
+  "lr": 0.0001,
+  "weight_decay": 0.0001,
+  "epochs": 50,
+  "batch_size": 8,
+  "patch_size": 256,
+  "loss_alpha": 0.5,
+  "pos_weight": 10.0,
+  "grad_clip": 1.0,
+  "early_stopping_patience": 10,
+  "seed": 42,
+  "data_root": "data/sen1floods11"
+}
+============================================================
+
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (8 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+Built Variant B: {'total': 24344817, 'trainable': 24344817, 'encoder': 21284672, 'decoder': 3060145}
+TensorBoard: tensorboard --logdir checkpoints/variant_B/runs
+
+
+[Epoch 001/050]
+  Train  loss=1.1124  iou=0.1172
+  Val    loss=1.0887    iou=0.0943
+  LR     1.00e-04
+  ✓ New best IoU: 0.0943
+
+[Epoch 002/050]
+  Train  loss=1.1322  iou=0.1302
+  Val    loss=1.0905    iou=0.0943
+  LR     9.99e-05
+
+[Epoch 003/050]
+  Train  loss=1.1206  iou=0.1242
+  Val    loss=1.0905    iou=0.0943
+  LR     9.96e-05
+
+[Epoch 004/050]
+  Train  loss=1.0789  iou=0.0961
+  Val    loss=1.0895    iou=0.0943
+  LR     9.91e-05
+
+[Epoch 005/050]
+  Train  loss=1.1052  iou=0.1135
+  Val    loss=1.0886    iou=0.0943
+  LR     9.84e-05
+
+[Epoch 006/050]
+  Train  loss=1.0891  iou=0.1034
+  Val    loss=1.0865    iou=0.0943
+  LR     9.76e-05
+
+[Epoch 007/050]
+  Train  loss=1.0618  iou=0.0889
+  Val    loss=1.0852    iou=0.0943
+  LR     9.65e-05
+
+[Epoch 008/050]
+  Train  loss=1.0970  iou=0.1097
+  Val    loss=1.0850    iou=0.0943
+  LR     9.53e-05
+
+[Epoch 009/050]
+  Train  loss=1.0718  iou=0.0959
+  Val    loss=1.0839    iou=0.0943
+  LR     9.39e-05
+
+[Epoch 010/050]
+  Train  loss=1.1532  iou=0.1401
+  Val    loss=1.0873    iou=0.0942
+  LR     9.23e-05
+
+[Epoch 011/050]
+  Train  loss=1.1134  iou=0.1175
+  Val    loss=1.0872    iou=0.0943
+  LR     9.05e-05
+
+Early stopping (patience=10)
+
+============================================================
+  Done. Best val IoU: 0.0943
+  Checkpoints: checkpoints/variant_B
+============================================================
+

@@ -1,0 +1,10 @@
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-bd159'
+Saved: results/curves/variant_D_scalars.csv
+Saved: /dkucc/home/bd159/terrainflood/results/figures
+WARNING: Missing tags (may be normal if your logger uses different names):
+  - Loss/train
+  - Loss/val
+  - IoU/train
+  - IoU/val
+
+If tags are different, run: python -c "from tensorboard.backend.event_processing.event_accumulator import EventAccumulator as EA; ea=EA(r'LOGDIR'); ea.Reload(); print(ea.Tags())"

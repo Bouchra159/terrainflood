@@ -1,0 +1,10 @@
+{
+  "iou_observed": 0.6789,
+  "iou_mean": 0.6633,
+  "iou_std": 0.083,
+  "ci_lower": 0.4723,
+  "ci_upper": 0.785,
+  "ci_level": 0.95,
+  "n_chips": 15,
+  "n_bootstrap": 1000
+}

@@ -1,0 +1,45 @@
+
+Device      : cuda
+Checkpoint  : checkpoints/variant_D/best.pt
+Output dir  : results/eval_D
+
+Built Variant D: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+  Loaded Variant D  epoch=2  best_iou=0.3362
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+MC Dropout (T=20):   0%|          | 0/15 [00:00<?, ?it/s]MC Dropout (T=20):   7%|▋         | 1/15 [00:00<00:09,  1.44it/s]MC Dropout (T=20):  13%|█▎        | 2/15 [00:00<00:05,  2.54it/s]MC Dropout (T=20):  20%|██        | 3/15 [00:01<00:03,  3.32it/s]MC Dropout (T=20):  27%|██▋       | 4/15 [00:01<00:02,  3.86it/s]MC Dropout (T=20):  33%|███▎      | 5/15 [00:01<00:02,  4.36it/s]MC Dropout (T=20):  40%|████      | 6/15 [00:01<00:01,  4.74it/s]MC Dropout (T=20):  47%|████▋     | 7/15 [00:01<00:01,  5.02it/s]MC Dropout (T=20):  53%|█████▎    | 8/15 [00:01<00:01,  5.21it/s]MC Dropout (T=20):  60%|██████    | 9/15 [00:02<00:01,  5.38it/s]MC Dropout (T=20):  67%|██████▋   | 10/15 [00:02<00:00,  5.47it/s]MC Dropout (T=20):  73%|███████▎  | 11/15 [00:02<00:00,  5.55it/s]MC Dropout (T=20):  80%|████████  | 12/15 [00:02<00:00,  5.61it/s]MC Dropout (T=20):  87%|████████▋ | 13/15 [00:02<00:00,  5.64it/s]MC Dropout (T=20):  93%|█████████▎| 14/15 [00:03<00:00,  5.68it/s]MC Dropout (T=20): 100%|██████████| 15/15 [00:03<00:00,  5.67it/s]MC Dropout (T=20): 100%|██████████| 15/15 [00:03<00:00,  4.67it/s]
+
+=======================================================
+  Variant D — Test Set (Bolivia OOD)
+=======================================================
+  IoU       : 0.6904
+  F1        : 0.8168
+  Precision : 0.7877
+  Recall    : 0.8482
+  ECE       : 0.3632  (target < 0.05)
+  Brier     : 0.1953
+  Mean var  : 0.0004
+=======================================================
+
+Per-event IoU:
+  Bolivia         IoU=0.6904  F1=0.8168
+
+Metrics → results/eval_D/metrics.json
+  Saved: results/eval_D/figures/reliability_diagram.png
+  Saved: results/eval_D/figures/iou_per_event.png
+  Saved: results/eval_D/figures/coverage_accuracy.png
+  Saved: results/eval_D/figures/risk_coverage.png
+  AURC: 0.5168  (lower is better)
+
+Saving flood maps for first 15 chips...
+
+Done. Results in results/eval_D

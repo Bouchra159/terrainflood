@@ -1,0 +1,81 @@
+
+Ablation evaluation — all 4 variants
+Checkpoints dir : checkpoints
+Output dir      : results/ablation
+
+
+--- Evaluating Variant A ---
+Built Variant A: {'total': 24341681, 'trainable': 24341681, 'encoder': 21281536, 'decoder': 3060145}
+  Loaded Variant A  epoch=39  best_iou=0.2977
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+MC Dropout (T=20):   0%|          | 0/15 [00:00<?, ?it/s]MC Dropout (T=20):   7%|▋         | 1/15 [00:03<00:54,  3.92s/it]MC Dropout (T=20):  13%|█▎        | 2/15 [00:04<00:22,  1.70s/it]MC Dropout (T=20):  20%|██        | 3/15 [00:04<00:11,  1.00it/s]MC Dropout (T=20):  27%|██▋       | 4/15 [00:04<00:07,  1.51it/s]MC Dropout (T=20):  33%|███▎      | 5/15 [00:04<00:04,  2.11it/s]MC Dropout (T=20):  40%|████      | 6/15 [00:04<00:03,  2.76it/s]MC Dropout (T=20):  47%|████▋     | 7/15 [00:04<00:02,  3.40it/s]MC Dropout (T=20):  53%|█████▎    | 8/15 [00:04<00:01,  4.07it/s]MC Dropout (T=20):  60%|██████    | 9/15 [00:05<00:01,  4.68it/s]MC Dropout (T=20):  67%|██████▋   | 10/15 [00:05<00:00,  5.22it/s]MC Dropout (T=20):  73%|███████▎  | 11/15 [00:05<00:00,  5.65it/s]MC Dropout (T=20):  80%|████████  | 12/15 [00:05<00:00,  6.00it/s]MC Dropout (T=20):  87%|████████▋ | 13/15 [00:05<00:00,  6.27it/s]MC Dropout (T=20):  93%|█████████▎| 14/15 [00:05<00:00,  6.48it/s]MC Dropout (T=20): 100%|██████████| 15/15 [00:05<00:00,  6.63it/s]MC Dropout (T=20): 100%|██████████| 15/15 [00:05<00:00,  2.51it/s]
+
+--- Evaluating Variant B ---
+Built Variant B: {'total': 24344817, 'trainable': 24344817, 'encoder': 21284672, 'decoder': 3060145}
+  Loaded Variant B  epoch=26  best_iou=0.3229
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+MC Dropout (T=20):   0%|          | 0/15 [00:00<?, ?it/s]MC Dropout (T=20):   7%|▋         | 1/15 [00:00<00:04,  3.16it/s]MC Dropout (T=20):  13%|█▎        | 2/15 [00:00<00:02,  4.57it/s]MC Dropout (T=20):  20%|██        | 3/15 [00:00<00:02,  5.41it/s]MC Dropout (T=20):  27%|██▋       | 4/15 [00:00<00:01,  5.71it/s]MC Dropout (T=20):  33%|███▎      | 5/15 [00:00<00:01,  6.06it/s]MC Dropout (T=20):  40%|████      | 6/15 [00:01<00:01,  6.30it/s]MC Dropout (T=20):  47%|████▋     | 7/15 [00:01<00:01,  6.47it/s]MC Dropout (T=20):  53%|█████▎    | 8/15 [00:01<00:01,  6.58it/s]MC Dropout (T=20):  60%|██████    | 9/15 [00:01<00:00,  6.69it/s]MC Dropout (T=20):  67%|██████▋   | 10/15 [00:01<00:00,  6.74it/s]MC Dropout (T=20):  73%|███████▎  | 11/15 [00:01<00:00,  6.80it/s]MC Dropout (T=20):  80%|████████  | 12/15 [00:01<00:00,  6.80it/s]MC Dropout (T=20):  87%|████████▋ | 13/15 [00:02<00:00,  6.83it/s]MC Dropout (T=20):  93%|█████████▎| 14/15 [00:02<00:00,  6.85it/s]MC Dropout (T=20): 100%|██████████| 15/15 [00:02<00:00,  6.87it/s]MC Dropout (T=20): 100%|██████████| 15/15 [00:02<00:00,  6.24it/s]
+
+--- Evaluating Variant C ---
+Built Variant C: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+  Loaded Variant C  epoch=4  best_iou=0.3446
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+MC Dropout (T=20):   0%|          | 0/15 [00:00<?, ?it/s]MC Dropout (T=20):   7%|▋         | 1/15 [00:02<00:34,  2.45s/it]MC Dropout (T=20):  13%|█▎        | 2/15 [00:02<00:14,  1.12s/it]MC Dropout (T=20):  20%|██        | 3/15 [00:02<00:08,  1.47it/s]MC Dropout (T=20):  27%|██▋       | 4/15 [00:02<00:05,  2.08it/s]MC Dropout (T=20):  33%|███▎      | 5/15 [00:03<00:03,  2.68it/s]MC Dropout (T=20):  40%|████      | 6/15 [00:03<00:02,  3.30it/s]MC Dropout (T=20):  47%|████▋     | 7/15 [00:03<00:02,  3.86it/s]MC Dropout (T=20):  53%|█████▎    | 8/15 [00:03<00:01,  4.33it/s]MC Dropout (T=20):  60%|██████    | 9/15 [00:03<00:01,  4.71it/s]MC Dropout (T=20):  67%|██████▋   | 10/15 [00:03<00:00,  5.03it/s]MC Dropout (T=20):  73%|███████▎  | 11/15 [00:04<00:00,  5.30it/s]MC Dropout (T=20):  80%|████████  | 12/15 [00:04<00:00,  5.45it/s]MC Dropout (T=20):  87%|████████▋ | 13/15 [00:04<00:00,  5.57it/s]MC Dropout (T=20):  93%|█████████▎| 14/15 [00:04<00:00,  5.65it/s]MC Dropout (T=20): 100%|██████████| 15/15 [00:04<00:00,  5.77it/s]MC Dropout (T=20): 100%|██████████| 15/15 [00:04<00:00,  3.08it/s]
+
+--- Evaluating Variant D ---
+Built Variant D: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+  Loaded Variant D  epoch=2  best_iou=0.3362
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+MC Dropout (T=20):   0%|          | 0/15 [00:00<?, ?it/s]MC Dropout (T=20):   7%|▋         | 1/15 [00:00<00:07,  1.95it/s]MC Dropout (T=20):  13%|█▎        | 2/15 [00:00<00:04,  3.10it/s]MC Dropout (T=20):  20%|██        | 3/15 [00:00<00:03,  3.84it/s]MC Dropout (T=20):  27%|██▋       | 4/15 [00:01<00:02,  4.40it/s]MC Dropout (T=20):  33%|███▎      | 5/15 [00:01<00:02,  4.77it/s]MC Dropout (T=20):  40%|████      | 6/15 [00:01<00:01,  5.05it/s]MC Dropout (T=20):  47%|████▋     | 7/15 [00:01<00:01,  5.13it/s]MC Dropout (T=20):  53%|█████▎    | 8/15 [00:01<00:01,  5.19it/s]MC Dropout (T=20):  60%|██████    | 9/15 [00:01<00:01,  5.36it/s]MC Dropout (T=20):  67%|██████▋   | 10/15 [00:02<00:00,  5.50it/s]MC Dropout (T=20):  73%|███████▎  | 11/15 [00:02<00:00,  5.50it/s]MC Dropout (T=20):  80%|████████  | 12/15 [00:02<00:00,  5.50it/s]MC Dropout (T=20):  87%|████████▋ | 13/15 [00:02<00:00,  5.59it/s]MC Dropout (T=20):  93%|█████████▎| 14/15 [00:02<00:00,  5.65it/s]MC Dropout (T=20): 100%|██████████| 15/15 [00:03<00:00,  5.71it/s]MC Dropout (T=20): 100%|██████████| 15/15 [00:03<00:00,  4.91it/s]
+
+Ablation table → results/ablation/ablation_table.csv
+  Saved: results/ablation/ablation_comparison.png
+
+Variant         IoU       F1      ECE    Brier
+----------------------------------------------
+  A          0.4082   0.5797   0.4023   0.2314
+  B          0.4411   0.6122   0.2404   0.1392
+  C          0.6623   0.7968   0.3699   0.1936
+  D          0.6898   0.8164   0.3623   0.1941
+
+Done. Results in results/ablation
