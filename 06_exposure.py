@@ -62,8 +62,8 @@ if "dataset" not in sys.modules:
 from model   import build_model     # noqa: E402
 from dataset import get_dataloaders  # noqa: E402
 
-# Import mc_dropout_inference from uncertainty.py
-_unc = _import_module("uncertainty_mod", str(_root / "uncertainty.py"))
+# Import mc_dropout_inference from 05_uncertainty.py
+_unc = _import_module("uncertainty_mod", str(_root / "05_uncertainty.py"))
 mc_dropout_inference = _unc.mc_dropout_inference
 
 

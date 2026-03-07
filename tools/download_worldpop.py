@@ -75,6 +75,13 @@ from rasterio.warp import reproject, calculate_default_transform
 # ─────────────────────────────────────────────────────────────
 # WorldPop 2020 country raster URLs (100m constrained)
 # Source: https://www.worldpop.org/geodata/listing?id=29
+#
+# NOTE: The CONSTRAINED (BSGM) product assigns population ONLY to areas with
+# detected building footprints. In remote/rural regions (e.g. Bolivia's Amazon
+# floodplain), these areas have NO buildings → all pixels are nodata → zero pop.
+#
+# For flood exposure in rural/remote regions, use WORLDPOP_UNCONSTRAINED_URLS
+# instead. Pass --unconstrained flag to download_worldpop.py.
 # ─────────────────────────────────────────────────────────────
 
 WORLDPOP_URLS: dict[str, str] = {
@@ -93,6 +100,29 @@ WORLDPOP_URLS: dict[str, str] = {
     "COD": "https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/COD/cod_ppp_2020_constrained.tif",
     "CAN": "https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/CAN/can_ppp_2020_constrained.tif",
     "ECU": "https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/ECU/ecu_ppp_2020_constrained.tif",
+}
+
+# WorldPop 2020 country raster URLs (100m UNCONSTRAINED)
+# Source: https://www.worldpop.org/geodata/listing?id=6
+# Distributes population across all land areas using dasymetric mapping
+# (land cover + administrative census data). Does NOT require building footprints.
+# Use this for rural/remote regions where constrained product gives all zeros.
+WORLDPOP_UNCONSTRAINED_URLS: dict[str, str] = {
+    "BOL": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/BOL/bol_ppp_2020.tif",
+    "PRY": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/PRY/pry_ppp_2020.tif",
+    "GHA": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/GHA/gha_ppp_2020.tif",
+    "IND": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/IND/ind_ppp_2020.tif",
+    "NGA": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/NGA/nga_ppp_2020.tif",
+    "PAK": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/PAK/pak_ppp_2020.tif",
+    "SOM": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/SOM/som_ppp_2020.tif",
+    "ESP": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/ESP/esp_ppp_2020.tif",
+    "LKA": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/LKA/lka_ppp_2020.tif",
+    "USA": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/USA/usa_ppp_2020.tif",
+    "MMR": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/MMR/mmr_ppp_2020.tif",
+    "KHM": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/KHM/khm_ppp_2020.tif",
+    "COD": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/COD/cod_ppp_2020.tif",
+    "CAN": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/CAN/can_ppp_2020.tif",
+    "ECU": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/ECU/ecu_ppp_2020.tif",
 }
 
 # Sen1Floods11 event → ISO3 country code
@@ -137,27 +167,30 @@ def download_country_raster(
     iso:       str,
     cache_dir: Path,
     force:     bool = False,
+    url_table: dict[str, str] | None = None,
 ) -> Path | None:
     """
-    Downloads WorldPop 2020 constrained population raster for the given
-    ISO3 country code. Caches to cache_dir; skips download if already
-    present unless force=True.
+    Downloads WorldPop 2020 population raster for the given ISO3 country code.
+    Caches to cache_dir; skips download if already present unless force=True.
 
     Args:
         iso:       ISO3 country code (e.g. "BOL")
         cache_dir: directory to cache the downloaded raster
         force:     re-download even if file exists
+        url_table: URL dict to use; defaults to WORLDPOP_URLS (constrained)
 
     Returns:
         Path to the downloaded raster, or None on failure.
     """
+    if url_table is None:
+        url_table = WORLDPOP_URLS
     iso = iso.upper()
-    if iso not in WORLDPOP_URLS:
+    if iso not in url_table:
         print(f"  [SKIP] No WorldPop URL configured for ISO={iso}")
         return None
 
     cache_dir.mkdir(parents=True, exist_ok=True)
-    url      = WORLDPOP_URLS[iso]
+    url      = url_table[iso]
     filename = url.split("/")[-1]
     out_path = cache_dir / filename
 
@@ -287,9 +320,22 @@ def crop_worldpop_to_chip(
         # Quick sanity check
         total_pop = float(pop_data.sum())
         max_pop   = float(pop_data.max())
+
+        if total_pop == 0.0:
+            print(
+                f"\n  [WARN] {out_path.stem}: all pixels are zero after crop.\n"
+                f"         Likely cause: WorldPop CONSTRAINED product has no building\n"
+                f"         footprints in this area (remote/floodplain region).\n"
+                f"         Fix: use the unconstrained product instead:\n"
+                f"           https://data.worldpop.org/GIS/Population/"
+                f"Global_2000_2020/2020/BOL/bol_ppp_2020.tif\n"
+                f"         Then re-run with --force --manual_raster <unconstrained_file>"
+            )
+
         return True, total_pop, max_pop
 
     except Exception as e:
+        print(f"  [ERROR] {out_path.stem}: {e}")
         return False, 0.0, 0.0
 
 
@@ -407,8 +453,19 @@ def main(args: argparse.Namespace) -> None:
     print(f"\nRequired country rasters: {sorted(needed_isos)}")
 
     # Download country rasters — or use a manually supplied file
-    cache_dir = data_root / ".worldpop_cache"
+    cache_dir  = data_root / ".worldpop_cache"
     raster_map: dict[str, Path | None] = {}
+
+    # Choose URL table: constrained (default) vs unconstrained (--unconstrained)
+    use_unconstrained = getattr(args, "unconstrained", False)
+    url_table = WORLDPOP_UNCONSTRAINED_URLS if use_unconstrained else WORLDPOP_URLS
+    if use_unconstrained:
+        print("  [Mode] Using UNCONSTRAINED WorldPop product "
+              "(distributes population across all land areas).")
+    else:
+        print("  [Mode] Using CONSTRAINED (BSGM) WorldPop product "
+              "(building-footprint based). If all chips show 0 population, "
+              "re-run with --unconstrained.")
 
     manual_raster = getattr(args, "manual_raster", None)
     if manual_raster is not None:
@@ -430,7 +487,9 @@ def main(args: argparse.Namespace) -> None:
         raster_map[iso] = manual_path
     else:
         for iso in needed_isos:
-            raster_map[iso] = download_country_raster(iso, cache_dir, force=args.force)
+            raster_map[iso] = download_country_raster(
+                iso, cache_dir, force=args.force, url_table=url_table
+            )
 
     # Crop to each chip
     print(f"\nCropping to {len(chips_to_process)} chips...")
@@ -523,6 +582,11 @@ def _parse_args() -> argparse.Namespace:
                    help="Re-download and re-crop even if files exist")
     p.add_argument("--check",       action="store_true",
                    help="Check which chips have pop data (no download)")
+    p.add_argument("--unconstrained", action="store_true",
+                   help="Use WorldPop UNCONSTRAINED product (distributes population "
+                        "across all land areas using dasymetric mapping — recommended "
+                        "for rural/remote regions where constrained gives all zeros). "
+                        "Unconstrained file is ~100-200MB vs ~15MB for constrained.")
     p.add_argument("--manual_raster", type=str, default=None,
                    help="Path to a manually pre-downloaded country WorldPop GeoTIFF "
                         "(bypasses network download — solves DKUCC cluster firewall). "
