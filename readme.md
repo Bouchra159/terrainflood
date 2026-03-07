@@ -204,22 +204,58 @@ DKUCC (VPN OFF, school WiFi)
 
 ## Results — Bolivia OOD test set (15 chips)
 
-All metrics on the held-out Bolivia event (out-of-distribution, never seen during training or validation).
+All metrics on the held-out Bolivia event (out-of-distribution, never seen during training or
+validation).  Class balance: flood = 10.1 %, background = 89.9 %.
 
-| Variant | IoU | F1 | Precision | Recall | ECE (pre-cal) | ECE (post-cal) |
-|---------|-----|----|-----------|--------|---------------|----------------|
-| A — SAR only | 0.408 | 0.580 | 0.413 | 0.973 | 0.402 | — |
-| B — HAND band | 0.441 | 0.612 | 0.453 | 0.944 | 0.240 | — |
-| C — HAND gate | 0.662 | 0.797 | 0.789 | 0.805 | 0.370 | — |
-| **D — gate + MC-Dropout** | **0.690** | **0.817** | **0.788** | **0.848** | 0.362 | **0.077** |
+### Ablation comparison (pre-calibration — fair cross-variant comparison)
 
-Key findings:
-- **B→C jump (+22 IoU points):** Physics-informed gating outperforms naive HAND inclusion by a large margin. How HAND is integrated matters.
-- **C→D gain (+2.8 IoU points):** Driven entirely by recall (+4.4%), precision unchanged. MC Dropout provides OOD regularization.
-- **Calibration:** Temperature scaling (T=0.100) reduces Variant D ECE by 79% (0.362 → 0.077), delivering excellent post-calibration reliability.
-- **HAND gate physics:** Gate α correlates with HAND in the expected direction — lowest-elevation chips receive highest gate activation (flood signal retained), highest-elevation chip receives most suppression.
+| Variant | IoU (95% CI) | F1 | Precision | Recall | Accuracy | ECE↓ | Brier↓ |
+|---------|--------------|----|-----------| -------|----------|------|--------|
+| A — SAR baseline | 0.408 [0.211, 0.578] | 0.580 | 0.413 | **0.973** | 0.776 | 0.402 | 0.231 |
+| B — +HAND band† | 0.441 [0.199, 0.658] | 0.612 | 0.453 | 0.944 | 0.810 | **0.240** | **0.139** |
+| C — +HAND gate† | 0.662 [0.450, 0.779] | 0.797 | 0.789 | 0.805 | 0.935 | 0.370 | 0.194 |
+| **D — +MC Dropout**‡ | **0.690** [0.459, 0.772] | **0.817** | **0.788** | 0.848 | **0.940** | 0.362 | 0.194 |
 
-Training converges fast: C and D reach best validation IoU in ~15 epochs. A requires 50 epochs.
+95% CI from 1 000 chip-level bootstrap resamples.
+
+† A→B and B→C improvements are **highly significant** (McNemar pixel-level test, p < 0.001).
+
+‡ C→D: IoU improves by +2.8 pts in the main eval run, but the improvement is **statistically
+inconclusive**. McNemar slightly favours C at pixel level (Δ = +4 318 pixels for C); the
+bootstrap CIs [0.459, 0.772] vs [0.450, 0.779] fully overlap; and MC Dropout stochasticity
+(T = 20 passes) introduces ~2 pt run-to-run IoU variability for Variant D.
+**D's principal contribution is calibrated uncertainty, not raw IoU gain.**
+
+### Variant D calibration (temperature scaling, T ≈ 0.100)
+
+| | ECE↓ | Brier↓ |
+|-|------|--------|
+| Pre-calibration (raw model output) | 0.362 | 0.194 |
+| **Post-calibration** (T ≈ 0.100) | **0.077** | **0.053** |
+| Reduction | **78.6 %** | **72.7 %** |
+
+The raw model output is bimodal — predictions cluster in [0.32, 0.74] before temperature
+scaling (model under-confident).  T ≈ 0.100 sharpens logits, filling all 15 calibration bins
+and achieving near-diagonal reliability.
+
+> **For the paper:** use pre-cal ECE in the ablation table (fair comparison across all 4
+> variants); headline Variant D with post-cal ECE = **0.077** in the calibration section.
+
+### Key findings
+
+- **B→C jump (+22 IoU pts):** Physics-informed gating vastly outperforms naive HAND band
+  inclusion.  How HAND is integrated matters as much as whether it is used at all.
+- **C→D gain (marginal, +2.8 pts):** Driven by recall (+4.4 %), precision unchanged.
+  Within MC Dropout run-to-run variance — do not over-claim IoU improvement.
+- **Calibration:** Temperature scaling reduces Variant D ECE by 79 % (0.362 → 0.077).
+  Pre-calibration model is systematically under-confident (bimodal mid-range outputs).
+- **HAND gate physics:** Gate α correlates with HAND elevation — low-HAND (flood-prone)
+  chips receive highest activation; high-HAND chips are suppressed.
+- **Risk-coverage (AURC = 0.517):** Curve rises steeply at low coverage due to 10:1 class
+  imbalance — at coverage < 0.30 almost all retained pixels are background (var ≈ 0),
+  giving IoU ≈ 0.  Expected behaviour; not a model failure.
+
+Training converges fast: C and D reach best validation IoU in ~15 epochs.  A requires 50.
 
 ---
 

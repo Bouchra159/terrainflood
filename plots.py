@@ -132,26 +132,48 @@ def plot_flood_map(
 # ─────────────────────────────────────────────────────────────
 
 def plot_reliability_diagram(
-    bin_accs:  np.ndarray,
-    bin_confs: np.ndarray,
-    ece:       float,
-    out_path:  str,
-    title:     str = "Reliability Diagram",
+    bin_accs:       np.ndarray,
+    bin_confs:      np.ndarray,
+    ece:            float,
+    out_path:       str,
+    title:          str  = "Reliability Diagram",
+    n_samples:      int | None = None,
+    subtitle_note:  str | None = None,
 ) -> None:
     """
     Reliability diagram (calibration curve).
     Perfect calibration = diagonal line.
 
+    Fixed (v2): uses ``bin_confs`` as x-positions for the calibration line
+    whenever bins are non-empty (bin_confs > 0), rather than theoretical
+    bin centres.  Empty bins (bin_confs == 0) are drawn as zero-height bars
+    at the theoretical centre but excluded from the connected line — this
+    correctly represents bimodal prediction distributions where the model
+    outputs no predictions in the tails.
+
     Args:
-        bin_accs:  (n_bins,) mean accuracy per confidence bin
-        bin_confs: (n_bins,) mean confidence per bin
-        ece:       Expected Calibration Error (scalar)
-        out_path:  save path
-        title:     plot title
+        bin_accs:      (n_bins,) mean accuracy per confidence bin
+        bin_confs:     (n_bins,) mean predicted confidence per bin
+                       (0.0 for empty bins)
+        ece:           Expected Calibration Error (scalar)
+        out_path:      save path
+        title:         plot title
+        n_samples:     optional total sample count for annotation
+        subtitle_note: optional one-line note shown below title
+                       (e.g. "Post-calibration (T = 0.100)")
     """
-    n_bins      = len(bin_accs)
+    bin_accs  = np.asarray(bin_accs,  dtype=float)
+    bin_confs = np.asarray(bin_confs, dtype=float)
+    n_bins    = len(bin_accs)
+
+    # Theoretical bin centres — used for bar x-positions
     bin_centers = np.linspace(1 / (2 * n_bins), 1 - 1 / (2 * n_bins), n_bins)
     bin_width   = 1.0 / n_bins
+
+    # Non-empty bins: use actual mean confidence as x-position on the curve
+    nonempty = bin_confs > 0
+    x_line   = bin_confs[nonempty]
+    y_line   = bin_accs[nonempty]
 
     # IEEE single-column: 3.5 in square
     fig, ax = plt.subplots(figsize=(3.5, 3.5))
@@ -162,21 +184,36 @@ def plot_reliability_diagram(
     ax.fill_between([0, 1], [0, 0], [0, 1], alpha=0.08,
                     color="#1565c0", label="Under-confident")
 
+    # Bars at theoretical centres (shows expected calibration range)
     ax.bar(bin_centers, bin_accs, width=bin_width * 0.9, alpha=0.55,
            color="#1976D2", label="Model", edgecolor="white", linewidth=0.5)
-    ax.plot(bin_centers, bin_accs, "o-", color="#0D47A1",
-            linewidth=1.5, markersize=4, zorder=5)
+
+    # Calibration line at ACTUAL mean confidence (non-empty bins only)
+    if nonempty.sum() >= 2:
+        ax.plot(x_line, y_line, "o-", color="#0D47A1",
+                linewidth=1.5, markersize=4, zorder=5)
+    elif nonempty.sum() == 1:
+        ax.scatter(x_line, y_line, s=30, color="#0D47A1", zorder=5)
+
     ax.plot([0, 1], [0, 1], "k--", linewidth=1.2,
             label="Perfect calibration", zorder=4)
 
-    # ECE annotation — placed inside axes, top-left
-    ax.text(0.04, 0.93, f"ECE = {ece:.4f}",
-            transform=ax.transAxes, fontsize=9,
-            bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="0.7", alpha=0.9))
+    # ECE annotation — top-left
+    ann_parts = [f"ECE = {ece:.4f}"]
+    if n_samples is not None:
+        ann_parts.append(f"n = {n_samples:,}")
+    ann_parts.append(f"non-empty bins: {int(nonempty.sum())}/{n_bins}")
+    ax.text(0.04, 0.93, "\n".join(ann_parts),
+            transform=ax.transAxes, fontsize=8,
+            va="top",
+            bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="0.7", alpha=0.9))
 
+    full_title = title
+    if subtitle_note:
+        full_title = f"{title}\n{subtitle_note}"
     ax.set_xlabel("Confidence (predicted probability)")
     ax.set_ylabel("Fraction of flood pixels")
-    ax.set_title(title)
+    ax.set_title(full_title, pad=4)
     ax.legend(fontsize=8, loc="lower right")
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
@@ -401,6 +438,8 @@ def plot_risk_coverage_curve(
 def plot_ablation_table(
     ablation_results: dict,
     out_path:         str,
+    post_cal:         dict | None = None,
+    bootstrap_ci:     dict | None = None,
 ) -> None:
     """
     Side-by-side bar chart comparing all 4 ablation variants.
@@ -412,47 +451,90 @@ def plot_ablation_table(
             "C": {...},
             "D": {...},
         }
-        out_path: save path
+        out_path:     save path
+        post_cal:     optional post-calibration values for D, e.g.
+                      {"D": {"ece": 0.077, "brier": 0.053}}
+                      When provided, a green annotation is overlaid on D's
+                      ECE and Brier bars showing the post-cal improvement.
+        bootstrap_ci: optional 95% CI bounds per variant, e.g.
+                      {"A": (0.211, 0.578), "B": (0.199, 0.658),
+                       "C": (0.450, 0.779), "D": (0.459, 0.772)}
+                      When provided, error bars are added to the IoU panel.
     """
     variants = ["A", "B", "C", "D"]
     # Short labels to fit single-column width; use \n for two-line ticks
     tick_labels = [
         "A\n(SAR only)",
-        "B\n(+HAND band)",
-        "C\n(+HAND gate)",
-        "D\n(+HAND gate\n+MC Dropout)",
+        "B\n(+HAND\nband)",
+        "C\n(+HAND\ngate)",
+        "D\n(+MC\nDropout)",
     ]
     metrics = ["iou", "f1", "ece", "brier"]
-    titles  = ["IoU ↑", "F1 ↑", "ECE ↓", "Brier Score ↓"]
+    titles  = ["IoU \u2191", "F1 \u2191", "ECE \u2193\n(pre-cal)", "Brier \u2193\n(pre-cal)"]
 
     x = np.arange(len(variants))
 
-    # IEEE double-column: 4 panels, 7.16 in wide × 2.8 in tall
-    fig, axes = plt.subplots(1, 4, figsize=(7.16, 2.8))
+    # IEEE double-column: 4 panels, 7.16 in wide × 3.0 in tall
+    fig, axes = plt.subplots(1, 4, figsize=(7.16, 3.0))
 
-    # Okabe–Ito colour-blind-safe palette
-    base_colour = "#90CAF9"     # light blue for A/B/C
-    highlight   = "#1565C0"     # dark blue for D (our full model)
+    # Okabe-Ito colour-blind-safe palette
+    base_colour = "#90CAF9"   # light blue for A/B/C
+    highlight   = "#1565C0"   # dark blue for D (full model)
 
     for ax, metric, mtitle in zip(axes, metrics, titles):
         vals    = [ablation_results.get(v, {}).get(metric, 0.0) for v in variants]
         colours = [highlight if v == "D" else base_colour for v in variants]
-        bars    = ax.bar(x, vals, color=colours, edgecolor="white",
-                         linewidth=0.4, width=0.65)
 
+        # Extra headroom for post-cal annotations on ECE/Brier panels
+        has_postcal_ann = (post_cal is not None
+                           and "D" in post_cal
+                           and metric in post_cal["D"])
+        top = max(vals or [0.1]) * (1.50 if has_postcal_ann else 1.30) + 0.02
+
+        bars = ax.bar(x, vals, color=colours, edgecolor="white",
+                      linewidth=0.4, width=0.65)
+
+        # Value labels above each bar
         for bar, val in zip(bars, vals):
             ax.text(bar.get_x() + bar.get_width() / 2,
                     bar.get_height() + max(vals or [0]) * 0.02,
                     f"{val:.3f}", ha="center", va="bottom", fontsize=7.5)
 
+        # ── IoU panel: bootstrap 95% CI error bars ──────────────────
+        if metric == "iou" and bootstrap_ci is not None:
+            for i, v in enumerate(variants):
+                if v in bootstrap_ci:
+                    lo, hi = bootstrap_ci[v]
+                    mid    = vals[i]
+                    ax.errorbar(x[i], mid,
+                                yerr=[[mid - lo], [hi - mid]],
+                                fmt="none", ecolor="#212121",
+                                elinewidth=1.0, capsize=3, capthick=1.0,
+                                zorder=6)
+
+        # ── ECE / Brier panels: post-calibration annotation for D ────
+        if has_postcal_ann:
+            post_val  = post_cal["D"][metric]
+            d_idx     = variants.index("D")
+            bar_top   = vals[d_idx]
+            ax.annotate(
+                f"post-cal:\n{post_val:.3f}",
+                xy=(x[d_idx], bar_top),
+                xytext=(x[d_idx], bar_top + max(vals) * 0.28),
+                ha="center", va="bottom", fontsize=6.5, color="#1B5E20",
+                arrowprops=dict(arrowstyle="-|>",
+                                color="#1B5E20", lw=0.8),
+                bbox=dict(boxstyle="round,pad=0.2",
+                          fc="#E8F5E9", ec="#1B5E20", alpha=0.9),
+            )
+
         ax.set_xticks(x)
         ax.set_xticklabels(tick_labels, fontsize=7.5)
-        ax.set_title(mtitle)
-        top = max(vals or [0.1]) * 1.30 + 0.02
+        ax.set_title(mtitle, pad=3)
         ax.set_ylim(0, max(top, 0.12))
         ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.2f"))
 
-    fig.suptitle("Ablation Study — Bolivia OOD Test Set")
+    fig.suptitle("Ablation Study — Bolivia OOD Test Set  (n = 15 chips)", y=1.01)
     plt.tight_layout(pad=0.4)
     plt.savefig(out_path, bbox_inches="tight")
     plt.close()
