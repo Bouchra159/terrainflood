@@ -442,7 +442,10 @@ def plot_ablation_table(
     bootstrap_ci:     dict | None = None,
 ) -> None:
     """
-    Side-by-side bar chart comparing all 4 ablation variants.
+    Side-by-side bar chart comparing ablation variants (A–D, or A–E when
+    Variant E checkpoint is available).  Any variant absent from
+    ``ablation_results`` is silently skipped so the chart always reflects
+    whichever checkpoints have been trained.
 
     Args:
         ablation_results: {
@@ -450,6 +453,7 @@ def plot_ablation_table(
             "B": {...},
             "C": {...},
             "D": {...},
+            "E": {...},   # optional — included when present
         }
         out_path:     save path
         post_cal:     optional post-calibration values for D, e.g.
@@ -461,14 +465,21 @@ def plot_ablation_table(
                        "C": (0.450, 0.779), "D": (0.459, 0.772)}
                       When provided, error bars are added to the IoU panel.
     """
-    variants = ["A", "B", "C", "D"]
-    # Short labels to fit single-column width; use \n for two-line ticks
-    tick_labels = [
-        "A\n(SAR only)",
-        "B\n(+HAND\nband)",
-        "C\n(+HAND\ngate)",
-        "D\n(+MC\nDropout)",
-    ]
+    # Build variant list from available results, preserving canonical order.
+    # Variants absent from ablation_results are silently skipped.
+    _canonical_order = ["A", "B", "C", "D", "E"]
+    variants = [v for v in _canonical_order if v in ablation_results]
+
+    # Short axis labels — extended with Variant E
+    _tick_label_map = {
+        "A": "A\n(SAR only)",
+        "B": "B\n(+HAND\nband)",
+        "C": "C\n(+HAND\ngate)",
+        "D": "D\n(+MC\nDropout)",
+        "E": "E\n(+Siamese\ndiff)",
+    }
+    tick_labels = [_tick_label_map.get(v, v) for v in variants]
+
     metrics = ["iou", "f1", "ece", "brier"]
     titles  = ["IoU \u2191", "F1 \u2191", "ECE \u2193\n(pre-cal)", "Brier \u2193\n(pre-cal)"]
 
@@ -479,11 +490,12 @@ def plot_ablation_table(
 
     # Okabe-Ito colour-blind-safe palette
     base_colour = "#90CAF9"   # light blue for A/B/C
-    highlight   = "#1565C0"   # dark blue for D (full model)
+    # Highlight colours: D = dark blue (full model), E = deep navy (new best)
+    _highlight_map = {"D": "#1565C0", "E": "#0D47A1"}
 
     for ax, metric, mtitle in zip(axes, metrics, titles):
         vals    = [ablation_results.get(v, {}).get(metric, 0.0) for v in variants]
-        colours = [highlight if v == "D" else base_colour for v in variants]
+        colours = [_highlight_map.get(v, base_colour) for v in variants]
 
         # Extra headroom for post-cal annotations on ECE/Brier panels
         has_postcal_ann = (post_cal is not None
@@ -513,7 +525,7 @@ def plot_ablation_table(
                                 zorder=6)
 
         # ── ECE / Brier panels: post-calibration annotation for D ────
-        if has_postcal_ann:
+        if has_postcal_ann and "D" in variants:
             post_val  = post_cal["D"][metric]
             d_idx     = variants.index("D")
             bar_top   = vals[d_idx]

@@ -350,13 +350,15 @@ def build_ablation_table(
     T:               int = 20,
 ) -> tuple[dict, list[dict]]:
     """
-    Evaluates all 4 variants (A/B/C/D) and builds a comparison table.
+    Evaluates all variants (A/B/C/D/E) and builds a comparison table.
+    Missing checkpoints are silently skipped, so a partial set is fine.
 
     Expects checkpoint files at:
         checkpoints_dir/variant_A/best.pt
         checkpoints_dir/variant_B/best.pt
         checkpoints_dir/variant_C/best.pt
         checkpoints_dir/variant_D/best.pt
+        checkpoints_dir/variant_E/best.pt  (optional)
 
     Returns:
         (ablation_dict, rows)
@@ -367,7 +369,7 @@ def build_ablation_table(
     csv_rows   = []
     ckpt_dir   = Path(checkpoints_dir)
 
-    for variant in ["A", "B", "C", "D"]:
+    for variant in ["A", "B", "C", "D", "E"]:
         ckpt_path = ckpt_dir / f"variant_{variant}" / "best.pt"
         if not ckpt_path.exists():
             print(f"  Variant {variant}: checkpoint not found at {ckpt_path}, skipping.")
@@ -466,6 +468,7 @@ def run_evaluation(args: argparse.Namespace) -> None:
         "B": "Variant B (HAND as band)",
         "C": "Variant C (HAND gate, no UQ)",
         "D": "Variant D (HAND gate + MC Dropout)",
+        "E": "Variant E (true Siamese diff + HAND gate + MC Dropout)",
     }
     plot_coverage_accuracy(
         results,
@@ -515,12 +518,12 @@ def run_evaluation(args: argparse.Namespace) -> None:
 # ─────────────────────────────────────────────────────────────
 
 def run_ablation(args: argparse.Namespace) -> None:
-    """Evaluate all 4 variants and produce comparison figures."""
+    """Evaluate all variants (A–E) and produce comparison figures."""
     device  = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"\nAblation evaluation — all 4 variants")
+    print(f"\nAblation evaluation — all variants (A–E, skipping missing checkpoints)")
     print(f"Checkpoints dir : {args.checkpoints_dir}")
     print(f"Output dir      : {out_dir}\n")
 
@@ -532,7 +535,7 @@ def run_ablation(args: argparse.Namespace) -> None:
     )
 
     if not ablation:
-        print("No checkpoints found. Train variants A–D first.")
+        print("No checkpoints found. Train at least one variant (A–E) first.")
         return
 
     # Save ablation JSON

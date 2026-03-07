@@ -9,7 +9,7 @@ Full PyTorch training loop for the TerrainFlood-UQ project.
   - TensorBoard: train/val loss, IoU, LR, sample predictions every 5 epochs
   - Checkpoints: best.pt + latest.pt with full state
   - Early stopping (patience=10)
-  - Ablation variants A/B/C/D via --variant flag
+  - Ablation variants A/B/C/D/E via --variant flag
 
 Usage:
   python train.py --variant D --data_root data/sen1floods11 --output_dir checkpoints/variant_D
@@ -398,8 +398,8 @@ def train(args: argparse.Namespace) -> None:
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="TerrainFlood-UQ Training")
     p.add_argument("--variant",    type=str,   default="D",
-                   choices=["A", "B", "C", "D"],
-                   help="Ablation variant (A=SAR only, D=full model)")
+                   choices=["A", "B", "C", "D", "E"],
+                   help="Ablation variant (A=SAR only, D=full model, E=true Siamese diff)")
     p.add_argument("--data_root",  type=str,   default="data/sen1floods11")
     p.add_argument("--output_dir", type=str,   default="checkpoints/variant_D")
     p.add_argument("--epochs",     type=int,   default=50)
