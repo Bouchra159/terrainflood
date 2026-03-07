@@ -140,68 +140,118 @@ def _annotate_best(ax: plt.Axes, x_idx: int, val: float, lower_is_better: bool,
 # Fig 01 — Ablation: 4-metric bar chart
 # ─────────────────────────────────────────────────────────────────────────────
 
-def fig01_ablation_comprehensive(ablation: Dict, out: Path) -> None:
+def fig01_ablation_comprehensive(ablation: Dict, out: Path,
+                                  stats: Optional[Dict] = None) -> None:
     """
     4-panel ablation: IoU↑, F1↑, ECE↓, Brier↓
-    Variant D is highlighted (dark blue). ★ marks the best per metric.
+    - Variant D highlighted (dark blue); ★ marks best per metric.
+    - If stats (ablation_stats.json) provided:
+        - IoU panel shows 95% CI bootstrap error bars (chip-level)
+        - McNemar significance stars annotated between key pairs
     """
     variants = ["A", "B", "C", "D"]
     tick_labels = [_VARIANT_LABELS[v] for v in variants]
     metrics = [
-        ("iou",    "IoU ↑",          False),
-        ("f1",     "F1 ↑",           False),
-        ("ece",    "ECE ↓",          True),
-        ("brier",  "Brier Score ↓",  True),
+        ("iou",    "IoU ↑",         False),
+        ("f1",     "F1 ↑",          False),
+        ("ece",    "ECE ↓",         True),
+        ("brier",  "Brier Score ↓", True),
     ]
 
+    # Extract bootstrap CI data
+    ci_lower: Optional[List] = None
+    ci_upper: Optional[List] = None
+    mcnemar_lookup: Dict = {}
+    if stats:
+        ci_data = stats.get("variants", {})
+        ci_lower = [ci_data.get(v, {}).get("ci", {}).get("ci_lower")
+                    for v in variants]
+        ci_upper = [ci_data.get(v, {}).get("ci", {}).get("ci_upper")
+                    for v in variants]
+        for pair in stats.get("mcnemar", []):
+            key = (pair.get("label_a", ""), pair.get("label_b", ""))
+            mcnemar_lookup[key] = pair
+
     x = np.arange(len(variants))
-    fig, axes = plt.subplots(1, 4, figsize=(7.16, 3.0))
-    fig.suptitle("Ablation Study — Bolivia OOD Test Set (n = 15 chips)", y=1.01)
+    fig, axes = plt.subplots(1, 4, figsize=(7.16, 3.2))
+    fig.suptitle(
+        "Ablation Study — Bolivia OOD Test Set  "
+        "(n = 15 chips;  error bars = 95% bootstrap CI)",
+        y=1.01)
 
     for ax, (metric, title, lower_is_better) in zip(axes, metrics):
         vals = [ablation.get(v, {}).get(metric, 0.0) for v in variants]
         colours = [_COLOURS[v] for v in variants]
-        bars = ax.bar(x, vals, color=colours, edgecolor="white",
-                      linewidth=0.5, width=0.68, zorder=3)
 
-        # Value labels on top of bars
+        if metric == "iou" and ci_lower and ci_upper:
+            iou_vals = [ablation.get(v, {}).get("iou", 0.0) for v in variants]
+            yerr_lo = [max(0.0, iou_vals[i] - (ci_lower[i] or iou_vals[i]))
+                       for i in range(len(variants))]
+            yerr_hi = [max(0.0, (ci_upper[i] or iou_vals[i]) - iou_vals[i])
+                       for i in range(len(variants))]
+            bars = ax.bar(x, vals, color=colours, edgecolor="white",
+                          linewidth=0.5, width=0.68, zorder=3,
+                          yerr=[yerr_lo, yerr_hi],
+                          error_kw=dict(elinewidth=1.1, capsize=4.0,
+                                        ecolor="#222222", capthick=1.1,
+                                        zorder=6))
+        else:
+            bars = ax.bar(x, vals, color=colours, edgecolor="white",
+                          linewidth=0.5, width=0.68, zorder=3)
+
+        # Value labels
         for i, (bar, val) in enumerate(zip(bars, vals)):
+            y_top = (ci_upper[i] if metric == "iou" and ci_upper
+                     and ci_upper[i] else val) or val
             ax.text(bar.get_x() + bar.get_width() / 2,
-                    bar.get_height() + max(vals) * 0.025,
+                    y_top + max(vals) * 0.05,
                     f"{val:.3f}", ha="center", va="bottom",
-                    fontsize=7.5, color="#212121")
+                    fontsize=7.0, color="#212121")
             _annotate_best(ax, i, val, lower_is_better, vals)
 
-        # Improvement arrow A→C for IoU/F1
-        if metric in ("iou", "f1"):
-            delta = vals[2] - vals[0]   # C minus A
-            ax.annotate(
-                f"+{delta:.3f}",
-                xy=(2, vals[2]), xytext=(0, vals[0]),
-                arrowprops=dict(arrowstyle="-|>", color="#555555",
-                                lw=0.9, connectionstyle="arc3,rad=-0.3"),
-                fontsize=7, color="#555555", ha="center", va="bottom",
-            )
+        # McNemar significance brackets on IoU panel
+        if metric == "iou" and mcnemar_lookup:
+            # A→C (the dominant HAND gate improvement)
+            pair_ac = mcnemar_lookup.get(("Variant_A", "Variant_C"))
+            if pair_ac:
+                stars = pair_ac.get("stars", "")
+                ax.annotate(
+                    f"+{vals[2]-vals[0]:.3f}\n{stars}",
+                    xy=(2, vals[2] + 0.02), xytext=(0, vals[0] + 0.05),
+                    arrowprops=dict(arrowstyle="-|>", color=_COLOURS["C"],
+                                    lw=1.1, connectionstyle="arc3,rad=-0.32"),
+                    fontsize=7, color=_COLOURS["C"], ha="center", va="bottom",
+                )
+            # C→D comparison (McNemar result may show C > D)
+            pair_cd = mcnemar_lookup.get(("Variant_C", "Variant_D"))
+            if pair_cd:
+                stars = pair_cd.get("stars", "")
+                direction = pair_cd.get("direction", "")
+                winner = "C>D" if "C" in direction else "D>C"
+                colour  = "#B71C1C" if "C" in direction else "#1B5E20"
+                ax.text(2.5, max(vals[2], vals[3]) * 1.25,
+                        f"C vs D: {stars}\n({winner})",
+                        ha="center", fontsize=6.5, color=colour,
+                        bbox=dict(boxstyle="round,pad=0.2",
+                                  fc="#FFF9C4", ec="0.7", alpha=0.92))
 
         ax.set_xticks(x)
         ax.set_xticklabels(tick_labels, fontsize=7.5)
         ax.set_title(title)
-        top_val = max(vals) if vals else 0.1
-        ax.set_ylim(0, top_val * 1.35 + 0.01)
+        all_tops = [(ci_upper[i] or vals[i]) if (metric == "iou" and ci_upper)
+                    else vals[i] for i in range(len(variants))]
+        ax.set_ylim(0, max(all_tops) * 1.55 + 0.02)
         ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.2f"))
-        ax.set_ylabel("Score")
+        ax.set_ylabel("↑ higher better" if not lower_is_better
+                      else "↓ lower better")
 
-        # Shade improvement/degradation
-        if not lower_is_better:
-            ax.set_ylabel("Score (higher = better)")
-        else:
-            ax.set_ylabel("Score (lower = better)")
-
-    # Legend: variant colours
     handles = [mpatches.Patch(color=_COLOURS[v], label=f"Variant {v}")
                for v in variants]
-    fig.legend(handles=handles, loc="lower center", ncol=4,
-               bbox_to_anchor=(0.5, -0.07), fontsize=8.5,
+    if ci_lower:
+        handles.append(mpatches.Patch(color="none",
+                                      label="Error bars = 95% CI (bootstrap)"))
+    fig.legend(handles=handles, loc="lower center", ncol=5,
+               bbox_to_anchor=(0.5, -0.09), fontsize=8,
                framealpha=0.9, edgecolor="0.7")
 
     plt.tight_layout(pad=0.5)
@@ -824,6 +874,7 @@ def main() -> None:
     gate_sum      = _load_json(results / "gate_maps_D"   / "gate_summary.json")     or {}
     rc_d_data     = _load_json(results / "eval_D"        / "risk_coverage.json")    or {}
     rc_c_data     = _load_json(results / "eval_C"        / "risk_coverage.json")    or None
+    ablation_stats = _load_json(results / "stats"        / "ablation_stats.json")   or None
 
     curves_dir = results / "curves"
 
@@ -831,7 +882,10 @@ def main() -> None:
     print("Generating figures:")
 
     if ablation:
-        fig01_ablation_comprehensive(ablation, out_dir / "fig01_ablation_comprehensive.png")
+        if ablation_stats:
+            print("  [INFO] Bootstrap CI + McNemar data found — adding error bars")
+        fig01_ablation_comprehensive(ablation, out_dir / "fig01_ablation_comprehensive.png",
+                                     stats=ablation_stats)
     else:
         print("  [SKIP] fig01: ablation_metrics.json missing")
 
