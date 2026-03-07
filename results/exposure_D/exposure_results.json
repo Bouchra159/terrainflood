@@ -1,0 +1,169 @@
+{
+  "overall": {
+    "gated_exposure": 8081.6,
+    "deterministic_exposure": 8081.6,
+    "uncertain_exposure": 0.0,
+    "uncertainty_threshold": 0.05
+  },
+  "per_event": {
+    "Bolivia": {
+      "gated_exposure": 8081.6,
+      "deterministic_exposure": 8081.6,
+      "uncertain_exposure": 0.0,
+      "mean_coverage": 1.0,
+      "n_chips": 15
+    }
+  },
+  "per_chip": [
+    {
+      "deterministic_exposure": 226.5,
+      "gated_exposure": 226.5,
+      "uncertain_exposure": 0.0,
+      "coverage": 1.0,
+      "trusted_pixels": 88077,
+      "total_pixels": 88077,
+      "chip_id": "Bolivia_103757",
+      "event": "Bolivia"
+    },
+    {
+      "deterministic_exposure": 334.6,
+      "gated_exposure": 334.6,
+      "uncertain_exposure": 0.0,
+      "coverage": 1.0,
+      "trusted_pixels": 237814,
+      "total_pixels": 237814,
+      "chip_id": "Bolivia_129334",
+      "event": "Bolivia"
+    },
+    {
+      "deterministic_exposure": 2760.7,
+      "gated_exposure": 2760.7,
+      "uncertain_exposure": 0.0,
+      "coverage": 1.0,
+      "trusted_pixels": 261335,
+      "total_pixels": 261335,
+      "chip_id": "Bolivia_195474",
+      "event": "Bolivia"
+    },
+    {
+      "deterministic_exposure": 579.2,
+      "gated_exposure": 579.2,
+      "uncertain_exposure": 0.0,
+      "coverage": 1.0,
+      "trusted_pixels": 209479,
+      "total_pixels": 209479,
+      "chip_id": "Bolivia_23014",
+      "event": "Bolivia"
+    },
+    {
+      "deterministic_exposure": 228.3,
+      "gated_exposure": 228.3,
+      "uncertain_exposure": 0.0,
+      "coverage": 1.0,
+      "trusted_pixels": 150537,
+      "total_pixels": 150537,
+      "chip_id": "Bolivia_233925",
+      "event": "Bolivia"
+    },
+    {
+      "deterministic_exposure": 810.8,
+      "gated_exposure": 810.8,
+      "uncertain_exposure": 0.0,
+      "coverage": 1.0,
+      "trusted_pixels": 175507,
+      "total_pixels": 175507,
+      "chip_id": "Bolivia_242570",
+      "event": "Bolivia"
+    },
+    {
+      "deterministic_exposure": 1039.9,
+      "gated_exposure": 1039.9,
+      "uncertain_exposure": 0.0,
+      "coverage": 1.0,
+      "trusted_pixels": 204633,
+      "total_pixels": 204633,
+      "chip_id": "Bolivia_290290",
+      "event": "Bolivia"
+    },
+    {
+      "deterministic_exposure": 11.9,
+      "gated_exposure": 11.9,
+      "uncertain_exposure": 0.0,
+      "coverage": 1.0,
+      "trusted_pixels": 130472,
+      "total_pixels": 130472,
+      "chip_id": "Bolivia_294583",
+      "event": "Bolivia"
+    },
+    {
+      "deterministic_exposure": 333.9,
+      "gated_exposure": 333.9,
+      "uncertain_exposure": 0.0,
+      "coverage": 1.0,
+      "trusted_pixels": 158008,
+      "total_pixels": 158008,
+      "chip_id": "Bolivia_312675",
+      "event": "Bolivia"
+    },
+    {
+      "deterministic_exposure": 238.5,
+      "gated_exposure": 238.5,
+      "uncertain_exposure": 0.0,
+      "coverage": 1.0,
+      "trusted_pixels": 188845,
+      "total_pixels": 188845,
+      "chip_id": "Bolivia_314919",
+      "event": "Bolivia"
+    },
+    {
+      "deterministic_exposure": 288.4,
+      "gated_exposure": 288.4,
+      "uncertain_exposure": 0.0,
+      "coverage": 1.0,
+      "trusted_pixels": 254091,
+      "total_pixels": 254091,
+      "chip_id": "Bolivia_360519",
+      "event": "Bolivia"
+    },
+    {
+      "deterministic_exposure": 450.0,
+      "gated_exposure": 450.0,
+      "uncertain_exposure": 0.0,
+      "coverage": 1.0,
+      "trusted_pixels": 262144,
+      "total_pixels": 262144,
+      "chip_id": "Bolivia_379434",
+      "event": "Bolivia"
+    },
+    {
+      "deterministic_exposure": 271.3,
+      "gated_exposure": 271.3,
+      "uncertain_exposure": 0.0,
+      "coverage": 1.0,
+      "trusted_pixels": 156889,
+      "total_pixels": 156889,
+      "chip_id": "Bolivia_432776",
+      "event": "Bolivia"
+    },
+    {
+      "deterministic_exposure": 183.0,
+      "gated_exposure": 183.0,
+      "uncertain_exposure": 0.0,
+      "coverage": 1.0,
+      "trusted_pixels": 199019,
+      "total_pixels": 199019,
+      "chip_id": "Bolivia_60373",
+      "event": "Bolivia"
+    },
+    {
+      "deterministic_exposure": 324.6,
+      "gated_exposure": 324.6,
+      "uncertain_exposure": 0.0,
+      "coverage": 1.0,
+      "trusted_pixels": 190965,
+      "total_pixels": 190965,
+      "chip_id": "Bolivia_76104",
+      "event": "Bolivia"
+    }
+  ]
+}
