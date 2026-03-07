@@ -187,22 +187,37 @@ class SiameseEncoder(nn.Module):
     The first conv layer is rebuilt to accept 2-channel input
     (SAR only has VV + VH, not 3 RGB channels).
 
-    Outputs feature pyramid from both branches, then returns
-    the element-wise DIFFERENCE at each scale:
-        diff_i = post_features_i - pre_features_i
+    Two encoding modes (controlled by ``diff_mode``):
 
-    Difference encoding is theoretically motivated for change detection:
-    flooding = what changed between pre and post.
+    diff_mode=False  [Variants A/B/C/D — backward-compatible default]
+        Returns post-event features only.  Pre is ignored.
+        NOTE: the original design intended difference encoding but the
+        implementation was accidentally written as post-only.  Variants
+        A/B/C/D were all trained in this mode and their checkpoints
+        must be evaluated with diff_mode=False.
+
+    diff_mode=True   [Variant E]
+        True Siamese change-detection encoding:
+            diff_i = post_features_i − pre_features_i
+        The decoder sees the bi-temporal CHANGE at every pyramid level.
+        This is theoretically motivated for flood detection:
+        flooding ↔ large negative SAR backscatter change (specular return
+        from open water replaces rougher land surface).
     """
 
-    def __init__(self, pretrained: bool = True, in_channels: int = 2):
+    def __init__(self, pretrained: bool = True, in_channels: int = 2,
+                 diff_mode: bool = False):
         """
         Args:
             pretrained:  use ImageNet-pretrained ResNet-34 weights
             in_channels: number of input channels per branch.
                          2 for standard SAR (VV+VH), 3 for Variant B (VV+VH+HAND).
+            diff_mode:   if True, return (post_feats − pre_feats) per level
+                         (Variant E).  If False (default), return post_feats
+                         only (Variants A/B/C/D — backward-compatible).
         """
         super().__init__()
+        self.diff_mode = diff_mode
 
         # Load ResNet-34 backbone
         if pretrained:
@@ -244,15 +259,31 @@ class SiameseEncoder(nn.Module):
     def forward(self, pre: torch.Tensor,
                 post: torch.Tensor) -> list[torch.Tensor]:
         """
-        Returns list of encoder feature maps: [s0, s1, s2, s3, s4]
+        Returns a 5-level feature pyramid: [f0, f1, f2, f3, f4]
 
-        Sen1Floods11 is a single-date dataset: pre and post are the same
-        chip normalised with identical statistics, so post - pre == 0
-        everywhere. Difference encoding is only valid for true bi-temporal
-        pairs; for single-date data we encode the post image directly.
+        diff_mode=False (Variants A/B/C/D):
+            Returns post-event features only.  Pre is available in the
+            input tensor but is discarded here.  Existing checkpoints for
+            A/B/C/D are valid under this mode.
+
+        diff_mode=True (Variant E):
+            Encodes both branches with shared weights and returns the
+            element-wise difference at each pyramid level:
+                f_i = post_feats[i] - pre_feats[i]
+            Positive values → backscatter INCREASE (rare in floods).
+            Negative values → backscatter DECREASE (specular return from
+            open water → strong flood signal).
+            The decoder + HAND gate then operate on change features.
         """
-        post_feats = self.encode_single(post)
-        return post_feats
+        if self.diff_mode:
+            pre_feats  = self.encode_single(pre)
+            post_feats = self.encode_single(post)
+            diff_feats = [p - q for p, q in zip(post_feats, pre_feats)]
+            return diff_feats
+        else:
+            # Backward-compatible: post-only encoding (Variants A/B/C/D)
+            post_feats = self.encode_single(post)
+            return post_feats
 
 
 # ─────────────────────────────────────────────────────────────
@@ -272,6 +303,9 @@ class FloodSegmentationModel(nn.Module):
       hand_as_band  (bool): if True, HAND is concatenated as input band
                             (only meaningful when use_hand_gate=False)
       dropout_rate  (float): set to 0.0 to disable MC Dropout
+      diff_mode     (bool): if True, use true Siamese difference encoding
+                            (post_feats − pre_feats at each pyramid level).
+                            False (default) uses post-only for A/B/C/D compat.
 
     Input tensor channel layout (from 02_dataset.py):
       [0] VV_pre
@@ -285,8 +319,8 @@ class FloodSegmentationModel(nn.Module):
                          denormalises to metres before passing to the gate
 
     Encoder input per variant:
-      Variant A (SAR only):   pre=[ch0,ch1]  post=[ch2,ch3]  — 2-ch per branch
-      Variant B (HAND band):  pre=[ch0,ch1,ch5]  post=[ch2,ch3,ch5]  — 3-ch
+      Variant A (SAR only):   post=[ch2,ch3] only (diff_mode=False)  — 2-ch
+      Variant B (HAND band):  post=[ch2,ch3,ch5] only (diff_mode=False) — 3-ch
       Variant C (HAND gate):  pre=[ch0,ch1]  post=[ch2,ch3]; ch5→gate
       Variant D (full model): same as C + MC Dropout active at inference
 
@@ -297,20 +331,26 @@ class FloodSegmentationModel(nn.Module):
     def __init__(
         self,
         pretrained:    bool  = True,
-        use_hand_gate: bool  = True,    # Variant C/D vs A/B
+        use_hand_gate: bool  = True,    # Variant C/D/E vs A/B
         hand_as_band:  bool  = False,   # Variant B only
         dropout_rate:  float = 0.3,     # 0.0 = no MC Dropout
+        diff_mode:     bool  = False,   # Variant E: true Siamese difference
     ):
         super().__init__()
 
         self.use_hand_gate = use_hand_gate
         self.hand_as_band  = hand_as_band
         self.dropout_rate  = dropout_rate
+        self.diff_mode     = diff_mode
 
         # ── Encoder ─────────────────────────────────────────
         # Variant B: HAND concatenated onto SAR → 3-channel per branch
         encoder_in_ch = 3 if (hand_as_band and not use_hand_gate) else 2
-        self.encoder  = SiameseEncoder(pretrained=pretrained, in_channels=encoder_in_ch)
+        self.encoder  = SiameseEncoder(
+            pretrained  = pretrained,
+            in_channels = encoder_in_ch,
+            diff_mode   = diff_mode,
+        )
 
         # ── HAND gates (one per decoder level) ──────────────
         # Only created if use_hand_gate=True
@@ -664,13 +704,19 @@ def build_model(variant: str = "D",
         print(model.count_parameters())
     """
     configs = {
-        "A": dict(use_hand_gate=False, hand_as_band=False, dropout_rate=0.0),
-        "B": dict(use_hand_gate=False, hand_as_band=True,  dropout_rate=0.0),
-        "C": dict(use_hand_gate=True,  hand_as_band=False, dropout_rate=0.0),
-        "D": dict(use_hand_gate=True,  hand_as_band=False, dropout_rate=0.3),
+        # Variants A-D: diff_mode=False (post-only; backward-compatible)
+        "A": dict(use_hand_gate=False, hand_as_band=False, dropout_rate=0.0, diff_mode=False),
+        "B": dict(use_hand_gate=False, hand_as_band=True,  dropout_rate=0.0, diff_mode=False),
+        "C": dict(use_hand_gate=True,  hand_as_band=False, dropout_rate=0.0, diff_mode=False),
+        "D": dict(use_hand_gate=True,  hand_as_band=False, dropout_rate=0.3, diff_mode=False),
+        # Variant E: TRUE Siamese difference + HAND gate + MC Dropout
+        # Fixes the diff_mode=False bug in A-D by enabling genuine change-detection
+        # encoding: decoder features = post_feats[i] − pre_feats[i] at each level.
+        # Must be trained from scratch; checkpoints are NOT compatible with D.
+        "E": dict(use_hand_gate=True,  hand_as_band=False, dropout_rate=0.3, diff_mode=True),
     }
     if variant not in configs:
-        raise ValueError(f"Variant must be A/B/C/D, got '{variant}'")
+        raise ValueError(f"Variant must be A/B/C/D/E, got '{variant}'")
 
     model = FloodSegmentationModel(pretrained=pretrained, **configs[variant])
     print(f"Built Variant {variant}: {model.count_parameters()}")
