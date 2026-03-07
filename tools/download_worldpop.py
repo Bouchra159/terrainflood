@@ -102,27 +102,45 @@ WORLDPOP_URLS: dict[str, str] = {
     "ECU": "https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/ECU/ecu_ppp_2020_constrained.tif",
 }
 
-# WorldPop 2020 country raster URLs (100m UNCONSTRAINED)
-# Source: https://www.worldpop.org/geodata/listing?id=6
-# Distributes population across all land areas using dasymetric mapping
-# (land cover + administrative census data). Does NOT require building footprints.
-# Use this for rural/remote regions where constrained product gives all zeros.
+# WorldPop 2020 UN-adjusted unconstrained population counts (100m)
+# Product: ppp_UNadj  —  "Global High Resolution Population Denominators Project"
+# Source:  https://hub.worldpop.org/project/categories?id=3
+# Year:    2020  (most recent individually-accessible; R2025A only available as 5.2 GB global zip)
+# Reference: Stevens et al. (2015) PLoS ONE doi:10.1371/journal.pone.0107042
+#
+# WHY THIS PRODUCT:
+#   • Unconstrained: distributes population across all land areas via Random Forest
+#     dasymetric mapping (land cover + geospatial covariates). Covers floodplains,
+#     rural areas, and any inhabited land — no zero-population silent failures.
+#   • UN-adjusted (_UNadj): country totals are calibrated to UN WPP 2019 Revision
+#     estimates, the international standard for demographic analyses.
+#   • Use this for flood exposure in remote/rural regions (e.g. Bolivia's Amazon
+#     floodplain) where the constrained (BSGM) product has all-zero values.
+#
+# FILE SIZES (verified 2026-03-07):
+#   BOL 516 MB | PRY 203 MB | GHA 111 MB | IND (large) | NGA 441 MB
+#   PAK 480 MB | SOM 297 MB | ESP 323 MB | LKA  33 MB  | MMR 359 MB
+#   KHM  90 MB | COD 1036MB | ECU 127 MB | USA ~4 GB   | CAN ~3.3 GB
+#
+# NOTE ON R2025A (released Sep 2025, UN WPP 2024-aligned, covers 2015-2030):
+#   Only available as a 5.2 GB global zip — no per-country files yet.
+#   Monitor: https://data.worldpop.org/repo/prj/Global_2015_2030/R2025A/
 WORLDPOP_UNCONSTRAINED_URLS: dict[str, str] = {
-    "BOL": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/BOL/bol_ppp_2020.tif",
-    "PRY": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/PRY/pry_ppp_2020.tif",
-    "GHA": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/GHA/gha_ppp_2020.tif",
-    "IND": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/IND/ind_ppp_2020.tif",
-    "NGA": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/NGA/nga_ppp_2020.tif",
-    "PAK": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/PAK/pak_ppp_2020.tif",
-    "SOM": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/SOM/som_ppp_2020.tif",
-    "ESP": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/ESP/esp_ppp_2020.tif",
-    "LKA": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/LKA/lka_ppp_2020.tif",
-    "USA": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/USA/usa_ppp_2020.tif",
-    "MMR": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/MMR/mmr_ppp_2020.tif",
-    "KHM": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/KHM/khm_ppp_2020.tif",
-    "COD": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/COD/cod_ppp_2020.tif",
-    "CAN": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/CAN/can_ppp_2020.tif",
-    "ECU": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/ECU/ecu_ppp_2020.tif",
+    "BOL": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/BOL/bol_ppp_2020_UNadj.tif",
+    "PRY": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/PRY/pry_ppp_2020_UNadj.tif",
+    "GHA": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/GHA/gha_ppp_2020_UNadj.tif",
+    "IND": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/IND/ind_ppp_2020_UNadj.tif",
+    "NGA": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/NGA/nga_ppp_2020_UNadj.tif",
+    "PAK": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/PAK/pak_ppp_2020_UNadj.tif",
+    "SOM": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/SOM/som_ppp_2020_UNadj.tif",
+    "ESP": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/ESP/esp_ppp_2020_UNadj.tif",
+    "LKA": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/LKA/lka_ppp_2020_UNadj.tif",
+    "USA": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/USA/usa_ppp_2020_UNadj.tif",
+    "MMR": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/MMR/mmr_ppp_2020_UNadj.tif",
+    "KHM": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/KHM/khm_ppp_2020_UNadj.tif",
+    "COD": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/COD/cod_ppp_2020_UNadj.tif",
+    "CAN": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/CAN/can_ppp_2020_UNadj.tif",
+    "ECU": "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/ECU/ecu_ppp_2020_UNadj.tif",
 }
 
 # Sen1Floods11 event → ISO3 country code
@@ -324,12 +342,15 @@ def crop_worldpop_to_chip(
         if total_pop == 0.0:
             print(
                 f"\n  [WARN] {out_path.stem}: all pixels are zero after crop.\n"
-                f"         Likely cause: WorldPop CONSTRAINED product has no building\n"
-                f"         footprints in this area (remote/floodplain region).\n"
-                f"         Fix: use the unconstrained product instead:\n"
+                f"         Likely cause: WorldPop CONSTRAINED (BSGM) product has no\n"
+                f"         building footprints in this area (remote/floodplain).\n"
+                f"         Fix: use the UN-adjusted UNCONSTRAINED product instead.\n"
+                f"         Download on your laptop:\n"
                 f"           https://data.worldpop.org/GIS/Population/"
-                f"Global_2000_2020/2020/BOL/bol_ppp_2020.tif\n"
-                f"         Then re-run with --force --manual_raster <unconstrained_file>"
+                f"Global_2000_2020/2020/BOL/bol_ppp_2020_UNadj.tif  (~516 MB)\n"
+                f"         Then: scp bol_ppp_2020_UNadj.tif bd159@dkucc:~/terrainflood/data/worldpop/\n"
+                f"         Then: python tools/download_worldpop.py --events Bolivia \\\n"
+                f"                   --manual_raster data/worldpop/bol_ppp_2020_UNadj.tif --force"
             )
 
         return True, total_pop, max_pop
