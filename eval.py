@@ -417,13 +417,15 @@ def run_evaluation(args: argparse.Namespace) -> None:
         batch_size            = args.batch_size,
         num_workers           = args.num_workers,
         uncertainty_threshold = args.uncertainty_threshold,
+        split                 = args.split,
     )
 
     variant = metrics["variant"]
     overall = metrics["overall"]
+    split_label = "Bolivia OOD" if args.split == "test" else f"Val ({args.split})"
 
     print(f"\n{'='*55}")
-    print(f"  Variant {variant} — Test Set (Bolivia OOD)")
+    print(f"  Variant {variant} — {split_label}")
     print(f"{'='*55}")
     print(f"  IoU       : {overall['iou']:.4f}")
     print(f"  F1        : {overall['f1']:.4f}")
@@ -587,8 +589,12 @@ def parse_args() -> argparse.Namespace:
     # Common
     p.add_argument("--data_root",    type=str, default="data/sen1floods11")
     p.add_argument("--output_dir",   type=str, default="results/eval")
+    p.add_argument("--split",        type=str, default="test",
+                   choices=["test", "val"],
+                   help="Evaluation split: test=Bolivia OOD (15 chips), "
+                        "val=Paraguay (67 chips)")
     p.add_argument("--T",            type=int, default=20,
-                   help="MC Dropout forward passes")
+                   help="MC Dropout forward passes (use --T 1 for A/B/C)")
     p.add_argument("--batch_size",   type=int, default=4)
     p.add_argument("--num_workers",  type=int, default=4)
     p.add_argument("--uncertainty_threshold", type=float, default=0.05)
