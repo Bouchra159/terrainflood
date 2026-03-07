@@ -1,0 +1,2 @@
+best_epoch,best_val_iou,last_epoch,train_iou_last,train_loss_last,val_loss_last,variant
+1,0.0943,11,0.1175,1.1134,1.0872,B
