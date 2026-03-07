@@ -1,0 +1,115 @@
+{
+  "variant": "D",
+  "checkpoint": "checkpoints/variant_D/best.pt",
+  "split": "test",
+  "T": 20,
+  "n_chips": 15,
+  "chips": [
+    {
+      "chip_id": "Bolivia_103757",
+      "event": "Bolivia",
+      "file": "Bolivia_Bolivia_103757_flood_prob.tif",
+      "flood_pixels": 32247,
+      "has_crs": true
+    },
+    {
+      "chip_id": "Bolivia_129334",
+      "event": "Bolivia",
+      "file": "Bolivia_Bolivia_129334_flood_prob.tif",
+      "flood_pixels": 169483,
+      "has_crs": true
+    },
+    {
+      "chip_id": "Bolivia_195474",
+      "event": "Bolivia",
+      "file": "Bolivia_Bolivia_195474_flood_prob.tif",
+      "flood_pixels": 351,
+      "has_crs": true
+    },
+    {
+      "chip_id": "Bolivia_23014",
+      "event": "Bolivia",
+      "file": "Bolivia_Bolivia_23014_flood_prob.tif",
+      "flood_pixels": 8405,
+      "has_crs": true
+    },
+    {
+      "chip_id": "Bolivia_233925",
+      "event": "Bolivia",
+      "file": "Bolivia_Bolivia_233925_flood_prob.tif",
+      "flood_pixels": 742,
+      "has_crs": true
+    },
+    {
+      "chip_id": "Bolivia_242570",
+      "event": "Bolivia",
+      "file": "Bolivia_Bolivia_242570_flood_prob.tif",
+      "flood_pixels": 51248,
+      "has_crs": true
+    },
+    {
+      "chip_id": "Bolivia_290290",
+      "event": "Bolivia",
+      "file": "Bolivia_Bolivia_290290_flood_prob.tif",
+      "flood_pixels": 22356,
+      "has_crs": true
+    },
+    {
+      "chip_id": "Bolivia_294583",
+      "event": "Bolivia",
+      "file": "Bolivia_Bolivia_294583_flood_prob.tif",
+      "flood_pixels": 14547,
+      "has_crs": true
+    },
+    {
+      "chip_id": "Bolivia_312675",
+      "event": "Bolivia",
+      "file": "Bolivia_Bolivia_312675_flood_prob.tif",
+      "flood_pixels": 3622,
+      "has_crs": true
+    },
+    {
+      "chip_id": "Bolivia_314919",
+      "event": "Bolivia",
+      "file": "Bolivia_Bolivia_314919_flood_prob.tif",
+      "flood_pixels": 86588,
+      "has_crs": true
+    },
+    {
+      "chip_id": "Bolivia_360519",
+      "event": "Bolivia",
+      "file": "Bolivia_Bolivia_360519_flood_prob.tif",
+      "flood_pixels": 1192,
+      "has_crs": true
+    },
+    {
+      "chip_id": "Bolivia_379434",
+      "event": "Bolivia",
+      "file": "Bolivia_Bolivia_379434_flood_prob.tif",
+      "flood_pixels": 5951,
+      "has_crs": true
+    },
+    {
+      "chip_id": "Bolivia_432776",
+      "event": "Bolivia",
+      "file": "Bolivia_Bolivia_432776_flood_prob.tif",
+      "flood_pixels": 78263,
+      "has_crs": true
+    },
+    {
+      "chip_id": "Bolivia_60373",
+      "event": "Bolivia",
+      "file": "Bolivia_Bolivia_60373_flood_prob.tif",
+      "flood_pixels": 9180,
+      "has_crs": true
+    },
+    {
+      "chip_id": "Bolivia_76104",
+      "event": "Bolivia",
+      "file": "Bolivia_Bolivia_76104_flood_prob.tif",
+      "flood_pixels": 0,
+      "has_crs": true
+    }
+  ],
+  "qgis_tip": "Open any *_flood_prob.tif in QGIS. Use Singleband Pseudocolor with range 0\u20131 and a blue/white colormap for best visualisation."
+}

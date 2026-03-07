@@ -1,0 +1,498 @@
+{
+  "split": "test",
+  "n_chips": 15,
+  "methods": {
+    "vv_post_otsu_perchip": {
+      "description": "Otsu threshold on normalised VV_post, per-chip",
+      "overall": {
+        "iou": 0.3481,
+        "f1": 0.5164,
+        "precision": 0.3738,
+        "recall": 0.8351,
+        "accuracy": 0.7519,
+        "tp": 379871,
+        "fp": 636390,
+        "fn": 74993,
+        "tn": 1776561,
+        "ece": null,
+        "brier": null,
+        "mean_variance": null
+      }
+    },
+    "change_detect_perchip": {
+      "description": "Otsu threshold on (VV_pre - VV_post), per-chip",
+      "overall": {
+        "iou": 0.1586,
+        "f1": 0.2738,
+        "precision": 0.1586,
+        "recall": 1.0,
+        "accuracy": 0.1586,
+        "tp": 454864,
+        "fp": 2412951,
+        "fn": 0,
+        "tn": 0,
+        "ece": null,
+        "brier": null,
+        "mean_variance": null
+      }
+    },
+    "vv_post_otsu_global": {
+      "description": "Otsu threshold on VV_post, pooled over all chips",
+      "global_threshold": -0.4558,
+      "overall": {
+        "iou": 0.5817,
+        "f1": 0.7356,
+        "precision": 0.6504,
+        "recall": 0.8464,
+        "accuracy": 0.9035,
+        "tp": 384979,
+        "fp": 206904,
+        "fn": 69885,
+        "tn": 2206047,
+        "ece": null,
+        "brier": null,
+        "mean_variance": null
+      }
+    },
+    "change_detect_global": {
+      "description": "Otsu threshold on (VV_pre - VV_post), pooled over all chips",
+      "global_threshold": -0.498,
+      "overall": {
+        "iou": 0.1586,
+        "f1": 0.2738,
+        "precision": 0.1586,
+        "recall": 1.0,
+        "accuracy": 0.1586,
+        "tp": 454864,
+        "fp": 2412951,
+        "fn": 0,
+        "tn": 0,
+        "ece": null,
+        "brier": null,
+        "mean_variance": null
+      }
+    }
+  },
+  "per_chip": [
+    {
+      "chip_id": "Bolivia_103757",
+      "event": "Bolivia",
+      "thresh_vv_post": -0.748,
+      "thresh_vv_delta": -0.498,
+      "vv_post_otsu": {
+        "iou": 0.7989,
+        "f1": 0.8882,
+        "precision": 0.8907,
+        "recall": 0.8858,
+        "accuracy": 0.9105,
+        "tp": 31322,
+        "fp": 3844,
+        "fn": 4040,
+        "tn": 48871
+      },
+      "change_detect": {
+        "iou": 0.4015,
+        "f1": 0.5729,
+        "precision": 0.4015,
+        "recall": 1.0,
+        "accuracy": 0.4015,
+        "tp": 35362,
+        "fp": 52715,
+        "fn": 0,
+        "tn": 0
+      }
+    },
+    {
+      "chip_id": "Bolivia_129334",
+      "event": "Bolivia",
+      "thresh_vv_post": -0.6413,
+      "thresh_vv_delta": -0.498,
+      "vv_post_otsu": {
+        "iou": 0.8128,
+        "f1": 0.8967,
+        "precision": 0.936,
+        "recall": 0.8606,
+        "accuracy": 0.8694,
+        "tp": 134808,
+        "fp": 9220,
+        "fn": 21835,
+        "tn": 71951
+      },
+      "change_detect": {
+        "iou": 0.6587,
+        "f1": 0.7942,
+        "precision": 0.6587,
+        "recall": 1.0,
+        "accuracy": 0.6587,
+        "tp": 156643,
+        "fp": 81171,
+        "fn": 0,
+        "tn": 0
+      }
+    },
+    {
+      "chip_id": "Bolivia_195474",
+      "event": "Bolivia",
+      "thresh_vv_post": 0.465,
+      "thresh_vv_delta": -0.498,
+      "vv_post_otsu": {
+        "iou": 0.0118,
+        "f1": 0.0234,
+        "precision": 0.0119,
+        "recall": 0.8317,
+        "accuracy": 0.5874,
+        "tp": 1290,
+        "fp": 107564,
+        "fn": 261,
+        "tn": 152220
+      },
+      "change_detect": {
+        "iou": 0.0059,
+        "f1": 0.0118,
+        "precision": 0.0059,
+        "recall": 1.0,
+        "accuracy": 0.0059,
+        "tp": 1551,
+        "fp": 259784,
+        "fn": 0,
+        "tn": 0
+      }
+    },
+    {
+      "chip_id": "Bolivia_23014",
+      "event": "Bolivia",
+      "thresh_vv_post": -0.7798,
+      "thresh_vv_delta": -0.498,
+      "vv_post_otsu": {
+        "iou": 0.6689,
+        "f1": 0.8016,
+        "precision": 0.7428,
+        "recall": 0.8706,
+        "accuracy": 0.984,
+        "tp": 6773,
+        "fp": 2345,
+        "fn": 1007,
+        "tn": 199354
+      },
+      "change_detect": {
+        "iou": 0.0371,
+        "f1": 0.0716,
+        "precision": 0.0371,
+        "recall": 1.0,
+        "accuracy": 0.0371,
+        "tp": 7780,
+        "fp": 201699,
+        "fn": 0,
+        "tn": 0
+      }
+    },
+    {
+      "chip_id": "Bolivia_233925",
+      "event": "Bolivia",
+      "thresh_vv_post": 0.1326,
+      "thresh_vv_delta": -0.498,
+      "vv_post_otsu": {
+        "iou": 0.0,
+        "f1": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "accuracy": 0.5585,
+        "tp": 0,
+        "fp": 66461,
+        "fn": 1,
+        "tn": 84075
+      },
+      "change_detect": {
+        "iou": 0.0,
+        "f1": 0.0,
+        "precision": 0.0,
+        "recall": 1.0,
+        "accuracy": 0.0,
+        "tp": 1,
+        "fp": 150536,
+        "fn": 0,
+        "tn": 0
+      }
+    },
+    {
+      "chip_id": "Bolivia_242570",
+      "event": "Bolivia",
+      "thresh_vv_post": -0.6293,
+      "thresh_vv_delta": -0.498,
+      "vv_post_otsu": {
+        "iou": 0.3132,
+        "f1": 0.477,
+        "precision": 0.3412,
+        "recall": 0.7927,
+        "accuracy": 0.7292,
+        "tp": 21676,
+        "fp": 41857,
+        "fn": 5670,
+        "tn": 106304
+      },
+      "change_detect": {
+        "iou": 0.1558,
+        "f1": 0.2696,
+        "precision": 0.1558,
+        "recall": 1.0,
+        "accuracy": 0.1558,
+        "tp": 27346,
+        "fp": 148161,
+        "fn": 0,
+        "tn": 0
+      }
+    },
+    {
+      "chip_id": "Bolivia_290290",
+      "event": "Bolivia",
+      "thresh_vv_post": 0.0283,
+      "thresh_vv_delta": -0.498,
+      "vv_post_otsu": {
+        "iou": 0.2235,
+        "f1": 0.3653,
+        "precision": 0.2375,
+        "recall": 0.7913,
+        "accuracy": 0.7354,
+        "tp": 15587,
+        "fp": 50042,
+        "fn": 4112,
+        "tn": 134892
+      },
+      "change_detect": {
+        "iou": 0.0963,
+        "f1": 0.1756,
+        "precision": 0.0963,
+        "recall": 1.0,
+        "accuracy": 0.0963,
+        "tp": 19699,
+        "fp": 184934,
+        "fn": 0,
+        "tn": 0
+      }
+    },
+    {
+      "chip_id": "Bolivia_294583",
+      "event": "Bolivia",
+      "thresh_vv_post": -0.8781,
+      "thresh_vv_delta": -0.498,
+      "vv_post_otsu": {
+        "iou": 0.7539,
+        "f1": 0.8597,
+        "precision": 0.8168,
+        "recall": 0.9073,
+        "accuracy": 0.9659,
+        "tp": 13617,
+        "fp": 3055,
+        "fn": 1391,
+        "tn": 112409
+      },
+      "change_detect": {
+        "iou": 0.115,
+        "f1": 0.2063,
+        "precision": 0.115,
+        "recall": 1.0,
+        "accuracy": 0.115,
+        "tp": 15008,
+        "fp": 115464,
+        "fn": 0,
+        "tn": 0
+      }
+    },
+    {
+      "chip_id": "Bolivia_312675",
+      "event": "Bolivia",
+      "thresh_vv_post": 0.2795,
+      "thresh_vv_delta": -0.498,
+      "vv_post_otsu": {
+        "iou": 0.1517,
+        "f1": 0.2634,
+        "precision": 0.1548,
+        "recall": 0.8833,
+        "accuracy": 0.7006,
+        "tp": 8458,
+        "fp": 46197,
+        "fn": 1117,
+        "tn": 102236
+      },
+      "change_detect": {
+        "iou": 0.0606,
+        "f1": 0.1143,
+        "precision": 0.0606,
+        "recall": 1.0,
+        "accuracy": 0.0606,
+        "tp": 9575,
+        "fp": 148433,
+        "fn": 0,
+        "tn": 0
+      }
+    },
+    {
+      "chip_id": "Bolivia_314919",
+      "event": "Bolivia",
+      "thresh_vv_post": -0.6399,
+      "thresh_vv_delta": -0.498,
+      "vv_post_otsu": {
+        "iou": 0.7331,
+        "f1": 0.846,
+        "precision": 0.8817,
+        "recall": 0.813,
+        "accuracy": 0.8688,
+        "tp": 68033,
+        "fp": 9126,
+        "fn": 15645,
+        "tn": 96041
+      },
+      "change_detect": {
+        "iou": 0.4431,
+        "f1": 0.6141,
+        "precision": 0.4431,
+        "recall": 1.0,
+        "accuracy": 0.4431,
+        "tp": 83678,
+        "fp": 105167,
+        "fn": 0,
+        "tn": 0
+      }
+    },
+    {
+      "chip_id": "Bolivia_360519",
+      "event": "Bolivia",
+      "thresh_vv_post": 0.3598,
+      "thresh_vv_delta": -0.498,
+      "vv_post_otsu": {
+        "iou": 0.0249,
+        "f1": 0.0486,
+        "precision": 0.0249,
+        "recall": 0.9836,
+        "accuracy": 0.5759,
+        "tp": 2755,
+        "fp": 107709,
+        "fn": 46,
+        "tn": 143581
+      },
+      "change_detect": {
+        "iou": 0.011,
+        "f1": 0.0218,
+        "precision": 0.011,
+        "recall": 1.0,
+        "accuracy": 0.011,
+        "tp": 2801,
+        "fp": 251290,
+        "fn": 0,
+        "tn": 0
+      }
+    },
+    {
+      "chip_id": "Bolivia_379434",
+      "event": "Bolivia",
+      "thresh_vv_post": 0.3192,
+      "thresh_vv_delta": -0.498,
+      "vv_post_otsu": {
+        "iou": 0.1109,
+        "f1": 0.1996,
+        "precision": 0.1174,
+        "recall": 0.6652,
+        "accuracy": 0.7804,
+        "tp": 7178,
+        "fp": 53943,
+        "fn": 3612,
+        "tn": 197411
+      },
+      "change_detect": {
+        "iou": 0.0412,
+        "f1": 0.0791,
+        "precision": 0.0412,
+        "recall": 1.0,
+        "accuracy": 0.0412,
+        "tp": 10790,
+        "fp": 251354,
+        "fn": 0,
+        "tn": 0
+      }
+    },
+    {
+      "chip_id": "Bolivia_432776",
+      "event": "Bolivia",
+      "thresh_vv_post": -0.655,
+      "thresh_vv_delta": -0.498,
+      "vv_post_otsu": {
+        "iou": 0.7037,
+        "f1": 0.8261,
+        "precision": 0.8666,
+        "recall": 0.7891,
+        "accuracy": 0.8472,
+        "tp": 56933,
+        "fp": 8762,
+        "fn": 15212,
+        "tn": 75982
+      },
+      "change_detect": {
+        "iou": 0.4598,
+        "f1": 0.63,
+        "precision": 0.4598,
+        "recall": 1.0,
+        "accuracy": 0.4598,
+        "tp": 72145,
+        "fp": 84744,
+        "fn": 0,
+        "tn": 0
+      }
+    },
+    {
+      "chip_id": "Bolivia_60373",
+      "event": "Bolivia",
+      "thresh_vv_post": -0.1363,
+      "thresh_vv_delta": -0.498,
+      "vv_post_otsu": {
+        "iou": 0.2311,
+        "f1": 0.3754,
+        "precision": 0.236,
+        "recall": 0.9166,
+        "accuracy": 0.8087,
+        "tp": 11439,
+        "fp": 37028,
+        "fn": 1041,
+        "tn": 149511
+      },
+      "change_detect": {
+        "iou": 0.0627,
+        "f1": 0.118,
+        "precision": 0.0627,
+        "recall": 1.0,
+        "accuracy": 0.0627,
+        "tp": 12480,
+        "fp": 186539,
+        "fn": 0,
+        "tn": 0
+      }
+    },
+    {
+      "chip_id": "Bolivia_76104",
+      "event": "Bolivia",
+      "thresh_vv_post": 0.2037,
+      "thresh_vv_delta": -0.498,
+      "vv_post_otsu": {
+        "iou": 0.0,
+        "f1": 0.0,
+        "precision": 0.0,
+        "recall": 0.4,
+        "accuracy": 0.5327,
+        "tp": 2,
+        "fp": 89237,
+        "fn": 3,
+        "tn": 101723
+      },
+      "change_detect": {
+        "iou": 0.0,
+        "f1": 0.0001,
+        "precision": 0.0,
+        "recall": 1.0,
+        "accuracy": 0.0,
+        "tp": 5,
+        "fp": 190960,
+        "fn": 0,
+        "tn": 0
+      }
+    }
+  ]
+}
