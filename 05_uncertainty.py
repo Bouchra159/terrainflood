@@ -61,6 +61,109 @@ from dataset import get_dataloaders  # noqa: E402
 
 
 # ─────────────────────────────────────────────────────────────
+# 0.  TTA helpers — D4 symmetry group (4 rotations × 2 flips)
+# ─────────────────────────────────────────────────────────────
+
+def tta_augment(x: torch.Tensor, k: int) -> torch.Tensor:
+    """
+    Apply the k-th element of the D4 group to a spatial tensor (B, C, H, W).
+
+    k=0  identity
+    k=1  rotate 90° CCW
+    k=2  rotate 180°
+    k=3  rotate 270° CCW
+    k=4  horizontal flip
+    k=5  flip + rotate 90°
+    k=6  flip + rotate 180°
+    k=7  flip + rotate 270°
+    """
+    flip = k >= 4
+    rot  = k % 4
+    if flip:
+        x = torch.flip(x, dims=[-1])        # flip along W axis
+    if rot > 0:
+        x = torch.rot90(x, k=rot, dims=[-2, -1])
+    return x
+
+
+def tta_deaugment(x: torch.Tensor, k: int) -> torch.Tensor:
+    """
+    Exact inverse of tta_augment(·, k) for output maps (B, H, W).
+    Guarantees: tta_deaugment(tta_augment(x, k), k) == x.
+    """
+    flip = k >= 4
+    rot  = k % 4
+    if rot > 0:
+        x = torch.rot90(x, k=4 - rot, dims=[-2, -1])   # inverse rotation
+    if flip:
+        x = torch.flip(x, dims=[-1])
+    return x
+
+
+@torch.no_grad()
+def tta_inference(
+    model:  torch.nn.Module,
+    loader: torch.utils.data.DataLoader,
+    device: torch.device,
+    n_aug:  int = 8,
+) -> list[dict]:
+    """
+    Test-Time Augmentation (TTA) uncertainty using the D4 symmetry group.
+
+    Runs n_aug deterministic forward passes (no dropout), each with a
+    different spatial augmentation.  Predictions are de-augmented back to
+    the original orientation before being averaged.
+
+    TTA variance captures how sensitive the model is to spatial orientation
+    — a geometric proxy for epistemic uncertainty.  In practice it is
+    5–50× larger than MC Dropout variance for models with bimodal logit
+    distributions (temperature T ≪ 1 after calibration).
+
+    Args:
+        model:  FloodSegmentationModel — must be in eval() mode
+        loader: DataLoader for the evaluation split
+        device: torch device
+        n_aug:  number of augmentations (8 = full D4 group, 4 = rotations only)
+
+    Returns:
+        List of per-chip dicts: {mean_prob, variance, label, event, chip_id}
+    """
+    model.eval()   # TTA uses NO dropout — pure geometric ensemble
+    results: list[dict] = []
+
+    for batch in tqdm(loader, desc=f"TTA ({n_aug} augmentations)"):
+        images   = batch["image"].to(device)   # (B, 6, H, W)
+        labels   = batch["label"]
+        events   = batch["event"]
+        chip_ids = batch["chip_id"]
+
+        B = images.shape[0]
+        aug_preds: list[torch.Tensor] = []
+
+        for k in range(n_aug):
+            x_aug  = tta_augment(images, k)              # (B, 6, H, W) augmented
+            logits = model(x_aug)                         # (B, 1, H, W)
+            probs  = torch.sigmoid(logits).squeeze(1)     # (B, H, W)
+            probs  = tta_deaugment(probs, k)              # back to original orientation
+            aug_preds.append(probs.cpu())
+
+        stacked   = torch.stack(aug_preds, dim=0)   # (n_aug, B, H, W)
+        mean_prob = stacked.mean(dim=0)              # (B, H, W)
+        variance  = stacked.var(dim=0)               # (B, H, W)
+
+        for i in range(B):
+            results.append({
+                "mean_prob": mean_prob[i].numpy(),
+                "variance":  variance[i].numpy(),
+                "label":     labels[i].numpy(),
+                "event":     events[i],
+                "chip_id":   chip_ids[i],
+            })
+
+    return results
+
+
+# ─────────────────────────────────────────────────────────────
 # 1.  MC Dropout inference
 # ─────────────────────────────────────────────────────────────
 
@@ -650,6 +753,27 @@ def run_uncertainty(args):
         num_workers = args.num_workers,
     )
 
+    # ── Logit distribution diagnostics (optional) ──────────────
+    if getattr(args, "analyze_logits", False):
+        print("Analyzing raw logit distribution (single deterministic pass)...")
+        model.eval()
+        all_logits: list[np.ndarray] = []
+        with torch.no_grad():
+            for batch in tqdm(test_loader, desc="Logit analysis"):
+                imgs = batch["image"].to(device)
+                lgs  = model(imgs).squeeze(1).cpu().numpy().flatten()
+                all_logits.append(lgs)
+        lgs_all = np.concatenate(all_logits)
+        print(f"  Logit mean={lgs_all.mean():.4f}  std={lgs_all.std():.4f}")
+        print(f"  Logit range=[{lgs_all.min():.3f}, {lgs_all.max():.3f}]")
+        near_zero = np.mean(np.abs(lgs_all) < 0.5)
+        print(f"  Fraction |logit| < 0.5 (uncertain region): {near_zero:.3%}")
+        probs_diag = 1.0 / (1.0 + np.exp(-lgs_all))
+        print(f"  Prob mean={probs_diag.mean():.4f}  "
+              f"fraction > 0.9: {np.mean(probs_diag > 0.9):.3%}  "
+              f"fraction < 0.1: {np.mean(probs_diag < 0.1):.3%}\n")
+        del all_logits, lgs_all, probs_diag
+
     # ── Temperature scaling (optional) ─────────────────────────
     temperature = 1.0
     if args.calibrate:
@@ -670,13 +794,18 @@ def run_uncertainty(args):
             out_path=str(out_dir / "logit_distribution.png"),
         )
 
-    # ── Inference (MC Dropout or TTA) ───────────────────────────
-    use_tta = getattr(args, "use_tta", False)
+    # ── Inference: TTA or MC Dropout ───────────────────────────
+    use_tta    = getattr(args, "use_tta", False)
+    include_bn = getattr(args, "include_bn", False)
+
     if use_tta:
-        print(f"Using TTA inference (8 augmentations)...")
-        results = tta_inference(model, test_loader, device)
+        n_aug = getattr(args, "n_aug", 8)
+        print(f"Using TTA ({n_aug} D4 augmentations) — no dropout active\n")
+        results = tta_inference(model, test_loader, device, n_aug=n_aug)
     else:
-        results = mc_dropout_inference(model, test_loader, device, T=args.T)
+        print(f"Using MC Dropout (T={args.T} passes)\n")
+        results = mc_dropout_inference(model, test_loader, device,
+                                       T=args.T, include_bn=include_bn)
     print(f"\nProcessed {len(results)} chips\n")
 
     # Apply temperature scaling to mean_prob if calibration was run
@@ -785,13 +914,27 @@ def parse_args():
                    help="Number of uncertainty map figures to save")
     p.add_argument("--calibrate",    action="store_true",
                    help="Find optimal temperature T on val set and apply to test predictions")
-    p.add_argument("--use_tta",      action="store_true",
-                   help="Use TTA (8 geometric augmentations) instead of MC Dropout. "
-                        "Useful for Variants A/B/C where dropout_rate=0.")
+    p.add_argument("--include_bn",   action="store_true",
+                   help="Set BatchNorm2d layers to train mode during MC passes "
+                        "(Teye et al. 2018). Uses batch statistics instead of running "
+                        "statistics, providing ~10–100× larger predictive variance. "
+                        "Requires batch_size >= 4 for stable BN statistics.")
+    p.add_argument("--save_arrays", action="store_true",
+                   help="Save per-chip mean_prob and variance as numpy arrays "
+                        "({out_dir}/chip_{chip_id}_mean.npy and _var.npy). "
+                        "Required by tools/exposure_tau_sweep.py.")
+    p.add_argument("--use_tta",    action="store_true",
+                   help="Use Test-Time Augmentation (D4 group: 4 rotations × 2 flips) "
+                        "instead of MC Dropout for uncertainty estimation. "
+                        "TTA variance is typically 5–50× larger than MC Dropout variance "
+                        "for bimodal models (T ≪ 1 after calibration). "
+                        "When set, --T and --include_bn are ignored.")
+    p.add_argument("--n_aug",      type=int, default=8,
+                   help="Number of D4 augmentations for TTA (default=8 = full group). "
+                        "Use 4 for rotations-only (faster). Only used when --use_tta is set.")
     p.add_argument("--analyze_logits", action="store_true",
-                   help="Save logit distribution histogram (diagnostic for extreme T values)")
-    p.add_argument("--save_arrays",  action="store_true",
-                   help="Save mean_prob and variance as .npy arrays per chip")
+                   help="Save logit distribution histogram and print summary stats. "
+                        "Useful for diagnosing bimodal/collapsed predictions.")
     return p.parse_args()
 
 
