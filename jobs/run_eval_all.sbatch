@@ -98,6 +98,7 @@ echo "=== ALPHA_VS_HAND DONE ==="
 
 # 6. Bootstrap CIs on ablation table
 python -u tools/bootstrap_ci.py \
+    --ablation \
     --checkpoints_dir checkpoints \
     --data_root data/sen1floods11 \
     --output_dir results/bootstrap_ci \
