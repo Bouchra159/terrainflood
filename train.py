@@ -48,8 +48,8 @@ if "model"   not in sys.modules:
 if "dataset" not in sys.modules:
     _import_module("dataset", str(_root / "02_dataset.py"))
 
-from model   import build_model, FloodLoss          # noqa: E402
-from dataset import get_dataloaders                  # noqa: E402
+from model   import build_model, FloodLoss, build_loss  # noqa: E402
+from dataset import get_dataloaders                     # noqa: E402
 
 
 # ─────────────────────────────────────────────────────────────
@@ -271,12 +271,14 @@ def train(args: argparse.Namespace) -> None:
         "epochs":                     args.epochs,
         "batch_size":                 args.batch_size,
         "patch_size":                 args.patch_size,
+        "loss_type":                  args.loss_type,
         "loss_alpha":                 args.loss_alpha,
         "pos_weight":                 args.pos_weight,
         "grad_clip":                  args.grad_clip,
         "early_stopping_patience":    args.early_stopping_patience,
         "seed":                       args.seed,
         "data_root":                  args.data_root,
+        "permanent_water":            "exclude" if args.exclude_permanent_water else "include",
     }
 
     print(f"\n{'='*60}")
@@ -288,12 +290,14 @@ def train(args: argparse.Namespace) -> None:
     print(f"{'='*60}\n")
 
     # ── Data
+    perm_water = "exclude" if args.exclude_permanent_water else "include"
     train_loader, val_loader, _ = get_dataloaders(
-        data_root   = args.data_root,
-        batch_size  = args.batch_size,
-        num_workers = args.num_workers,
-        patch_size  = args.patch_size,
-        pin_memory  = device.type == "cuda",
+        data_root      = args.data_root,
+        batch_size     = args.batch_size,
+        num_workers    = args.num_workers,
+        patch_size     = args.patch_size,
+        pin_memory     = device.type == "cuda",
+        permanent_water = perm_water,
     )
 
     # ── Model
@@ -301,7 +305,11 @@ def train(args: argparse.Namespace) -> None:
     model = model.to(device)
 
     # ── Loss
-    criterion = FloodLoss(pos_weight=args.pos_weight, alpha=args.loss_alpha)
+    criterion = build_loss(
+        loss_type  = args.loss_type,
+        pos_weight = args.pos_weight,
+        alpha      = args.loss_alpha,
+    )
 
     # ── Optimizer + Scheduler
     optimizer = torch.optim.AdamW(
@@ -409,10 +417,17 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--patch_size", type=int,   default=256)
     p.add_argument("--lr",         type=float, default=1e-4)
     p.add_argument("--weight_decay", type=float, default=1e-4)
+    p.add_argument("--loss_type",  type=str,   default="bce_dice",
+                   choices=["bce_dice", "tversky", "focal_dice"],
+                   help="Loss function: bce_dice (default), tversky (recall-heavy), "
+                        "focal_dice (hard-example focus)")
     p.add_argument("--loss_alpha", type=float, default=0.5,
-                   help="alpha*BCE + (1-alpha)*Dice")
+                   help="alpha*primary + (1-alpha)*Dice — applies to bce_dice and focal_dice")
     p.add_argument("--pos_weight", type=float, default=10.0,
-                   help="BCE positive class weight for flood pixels")
+                   help="BCE positive class weight for flood pixels (bce_dice only)")
+    p.add_argument("--exclude_permanent_water", action="store_true",
+                   help="Mask permanent water pixels (label=2) as ignore (-1) during "
+                        "training and validation. Focuses the model on dynamic flood pixels.")
     p.add_argument("--grad_clip",  type=float, default=1.0)
     p.add_argument("--early_stopping_patience", type=int, default=10)
     p.add_argument("--num_workers", type=int,  default=4)

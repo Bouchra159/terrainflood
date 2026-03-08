@@ -506,6 +506,7 @@ def get_dataloaders(
     patch_size: int = 256,
     pin_memory: bool = True,
     oversample: bool = True,
+    permanent_water: str = "include",
 ) -> tuple[DataLoader, DataLoader, DataLoader]:
     """
     Returns (train_loader, val_loader, test_loader).
@@ -513,10 +514,19 @@ def get_dataloaders(
     Train: random crops, augmentation, optional oversampling
     Val:   full chips
     Test:  Bolivia only (OOD)
+
+    Args:
+        permanent_water: how to handle label class 2 (permanent water).
+          "include" → treat as flood (default)
+          "exclude" → mask as -1 (ignore during loss and metrics)
+          "flood"   → explicit flood alias for "include"
     """
-    train_ds = FloodDataset(data_root, split="train", patch_size=patch_size)
-    val_ds   = FloodDataset(data_root, split="val",   patch_size=None, augment=False)
-    test_ds  = FloodDataset(data_root, split="test",  patch_size=None, augment=False)
+    train_ds = FloodDataset(data_root, split="train", patch_size=patch_size,
+                            permanent_water=permanent_water)
+    val_ds   = FloodDataset(data_root, split="val",   patch_size=None, augment=False,
+                            permanent_water=permanent_water)
+    test_ds  = FloodDataset(data_root, split="test",  patch_size=None, augment=False,
+                            permanent_water=permanent_water)
 
     if oversample:
         weights = []
@@ -562,6 +572,85 @@ def get_dataloaders(
 
     return train_loader, val_loader, test_loader
     
+def check_variant_E_pipeline(data_root: str, n_chips: int = 5) -> dict:
+    """
+    Diagnostic: validates the Variant E data pipeline.
+
+    Checks:
+      1. Dataset loads without error.
+      2. Image tensor has correct shape (6, H, W) and dtype.
+      3. Channels 0–3 are finite (no NaN/Inf after normalisation).
+      4. Pre-event (ch 0–1) and post-event (ch 2–3) differ — WARN if identical.
+         NOTE: In Sen1Floods11 HandLabeled, S1Hand.tif is a single post-event
+         acquisition, so pre == post is expected. When real bi-temporal exports
+         are used (from 01_gee_export.py), ch0–1 and ch2–3 should differ.
+      5. Diff channels (post − pre) have mean ≈ 0 and finite std.
+      6. HAND channel (ch 5) is normalised (z-score range expected).
+
+    Returns:
+        dict with keys: n_chips_checked, identical_pre_post (bool),
+                        diff_VV_mean, diff_VV_std, diff_VH_mean, diff_VH_std,
+                        HAND_mean, HAND_std, status ("OK" | "WARN")
+    """
+    ds = FloodDataset(data_root, split="train", patch_size=None,
+                      augment=False, normalize=True)
+    n = min(n_chips, len(ds))
+    if n == 0:
+        return {"status": "ERROR: no train chips found"}
+
+    diff_vv_means, diff_vv_stds = [], []
+    diff_vh_means, diff_vh_stds = [], []
+    hand_means, hand_stds       = [], []
+    n_identical = 0
+
+    for i in range(n):
+        img = ds[i]["image"].numpy()   # (6, H, W)
+
+        assert img.shape[0] == 6, f"Expected 6 bands, got {img.shape[0]}"
+        assert np.isfinite(img[:4]).all(), f"NaN/Inf in SAR bands (chip {i})"
+
+        vv_pre, vh_pre   = img[0], img[1]
+        vv_post, vh_post = img[2], img[3]
+        hand_z           = img[5]
+
+        diff_vv = vv_post - vv_pre
+        diff_vh = vh_post - vh_pre
+
+        diff_vv_means.append(float(diff_vv.mean()))
+        diff_vv_stds.append(float(diff_vv.std()))
+        diff_vh_means.append(float(diff_vh.mean()))
+        diff_vh_stds.append(float(diff_vh.std()))
+        hand_means.append(float(hand_z.mean()))
+        hand_stds.append(float(hand_z.std()))
+
+        if np.allclose(vv_pre, vv_post, atol=1e-6):
+            n_identical += 1
+
+    identical = n_identical == n
+    status = "OK"
+    if identical:
+        status = (
+            "WARN: pre == post for all checked chips. "
+            "Sen1Floods11 S1Hand.tif is single-date. Variant E diff will be ~0. "
+            "Use bi-temporal GEE exports for real change detection."
+        )
+        print(f"[check_variant_E_pipeline] {status}")
+    else:
+        print(f"[check_variant_E_pipeline] OK — {n - n_identical}/{n} chips have pre ≠ post")
+
+    return {
+        "n_chips_checked":  n,
+        "identical_pre_post": identical,
+        "diff_VV_mean":     round(float(np.mean(diff_vv_means)), 4),
+        "diff_VV_std":      round(float(np.mean(diff_vv_stds)), 4),
+        "diff_VH_mean":     round(float(np.mean(diff_vh_means)), 4),
+        "diff_VH_std":      round(float(np.mean(diff_vh_stds)), 4),
+        "HAND_mean_z":      round(float(np.mean(hand_means)), 4),
+        "HAND_std_z":       round(float(np.mean(hand_stds)), 4),
+        "status":           status,
+    }
+
+
 if __name__ == "__main__":
     import sys
     data_root = sys.argv[1] if len(sys.argv) > 1 else "data/sen1floods11"

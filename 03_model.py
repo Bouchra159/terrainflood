@@ -278,7 +278,8 @@ class SiameseEncoder(nn.Module):
         return [s0, s1, s2, s3, s4]
 
     def forward(self, pre: torch.Tensor,
-                post: torch.Tensor) -> list[torch.Tensor]:
+                post: torch.Tensor,
+                hand: Optional[torch.Tensor] = None) -> list[torch.Tensor]:
         """
         Returns list of encoder feature maps: [s0, s1, s2, s3, s4].
 
@@ -287,16 +288,20 @@ class SiameseEncoder(nn.Module):
           Single-date SAR: A–D are post-event only models.
 
         use_diff=True (Variant E):
-          Encodes (post − pre) at the INPUT level before any ResNet layers.
+          Encodes (post − pre) at the INPUT level before any ResNet layers,
+          then concatenates the HAND channel: input = [diff_VV, diff_VH, HAND].
           This is the correct change detection approach: the network sees
-          the SAR difference signal directly, which is non-zero only where
-          surface reflectivity changed (flooded pixels).
+          the SAR difference signal directly, augmented with terrain context.
+          Pass hand=(B,1,H,W) z-score normalised HAND when use_diff=True.
         """
         if self.use_diff:
             # Input-space change detection: difference before any feature extraction
             # diff > 0: surface got darker  (backscatter decreased → possible flood)
             # diff < 0: surface got brighter (backscatter increased)
-            diff = post - pre                         # (B, C, H, W)
+            diff = post - pre                         # (B, 2, H, W)
+            if hand is not None:
+                # Concatenate HAND as 3rd encoder channel: [diff_VV, diff_VH, HAND]
+                diff = torch.cat([diff, hand], dim=1)  # (B, 3, H, W)
             return self.encode_single(diff)
         else:
             # Post-only encoding (Variants A, B, C, D)
@@ -337,12 +342,13 @@ class FloodSegmentationModel(nn.Module):
                          denormalises to metres before passing to the gate
 
     Encoder input per variant:
-      Variant A (SAR only):      pre=[ch0,ch1]  post=[ch2,ch3]  — 2-ch post-only
-      Variant B (HAND band):     pre=[ch0,ch1,ch5]  post=[ch2,ch3,ch5]  — 3-ch
-      Variant C (HAND gate):     pre=[ch0,ch1]  post=[ch2,ch3]; ch5→gate
-      Variant D (full model):    same as C + decoder MC Dropout
-      Variant E (change detect): same as D but encode (post−pre) diff input
-      Variant D_plus (enc+dec dropout): same as D + encoder Dropout2d
+      Variant A (SAR only):      post=[ch2,ch3]                         — 2-ch
+      Variant B (HAND band):     pre=[ch0,ch1,ch5]  post=[ch2,ch3,ch5] — 3-ch
+      Variant C (HAND gate):     post=[ch2,ch3]; ch5→gate               — 2-ch
+      Variant D (full model):    same as C + decoder MC Dropout          — 2-ch
+      Variant E (change detect): [diff_VV, diff_VH, HAND] in encoder    — 3-ch
+                                  ch5 also fed to gate (metres)
+      Variant D_plus:            same as D + encoder Dropout2d           — 2-ch
 
     Note: WorldPop is NOT a model input. It is used only in 06_exposure.py
     post-prediction for population exposure estimation.
@@ -366,8 +372,15 @@ class FloodSegmentationModel(nn.Module):
         self.encoder_dropout_rate = encoder_dropout_rate
 
         # ── Encoder ─────────────────────────────────────────
-        # Variant B: HAND concatenated onto SAR → 3-channel per branch
-        encoder_in_ch = 3 if (hand_as_band and not use_hand_gate) else 2
+        # Variant B:  HAND concatenated onto SAR → 3-channel per branch
+        # Variant E:  [diff_VV, diff_VH, HAND] → 3-channel (change detection)
+        # All others: [VV, VH] → 2-channel
+        if hand_as_band and not use_hand_gate:
+            encoder_in_ch = 3   # Variant B
+        elif use_diff:
+            encoder_in_ch = 3   # Variant E: diff_VV, diff_VH, HAND
+        else:
+            encoder_in_ch = 2   # Variants A, C, D, D_plus
         self.encoder  = SiameseEncoder(
             pretrained=pretrained,
             in_channels=encoder_in_ch,
@@ -476,18 +489,20 @@ class FloodSegmentationModel(nn.Module):
         pre  = x[:, 0:2, :, :]    # VV_pre,  VH_pre
         post = x[:, 2:4, :, :]    # VV_post, VH_post
 
-        # If HAND as band: concatenate HAND onto pre/post inputs
+        # If HAND as band: concatenate HAND onto pre/post inputs (Variant B)
         if self.hand_as_band and not self.use_hand_gate:
             hand_band = x[:, 5:6, :, :]
             pre  = torch.cat([pre,  hand_band], dim=1)   # 3-channel
             post = torch.cat([post, hand_band], dim=1)   # 3-channel
-            # Note: encoder was built for 2-channel; this path requires
-            # retraining with hand_as_band=True from scratch (different model)
 
         # ── Encoder: feature difference pyramid ─────────────
-        # diffs = [diff0, diff1, diff2, diff3, diff4]
-        # diff_i shape: see SiameseEncoder.encode_single comments
-        diffs = self.encoder(pre, post)
+        # Variant E passes z-score HAND as 3rd encoder channel alongside diff.
+        # Gate still uses denormalised HAND (metres) via _prepare_hand() below.
+        if self.use_diff:
+            hand_enc = x[:, 5:6, :, :]   # z-score HAND — encoder input
+            diffs = self.encoder(pre, post, hand=hand_enc)
+        else:
+            diffs = self.encoder(pre, post)
         d0, d1, d2, d3, d4 = diffs   # d4 is bottleneck
 
         # ── Decoder with optional HAND gates ────────────────
@@ -559,7 +574,11 @@ class FloodSegmentationModel(nn.Module):
 
         pre  = x[:, 0:2, :, :]
         post = x[:, 2:4, :, :]
-        diffs = self.encoder(pre, post)
+        if self.use_diff:
+            hand_enc = x[:, 5:6, :, :]
+            diffs = self.encoder(pre, post, hand=hand_enc)
+        else:
+            diffs = self.encoder(pre, post)
         d0, d1, d2, d3, d4 = diffs
 
         # Gate 4: bottleneck → d3 skip
@@ -684,6 +703,156 @@ class FloodLoss(nn.Module):
 
 
 # ─────────────────────────────────────────────────────────────
+# 5b. Tversky loss  (recall-heavy variant for flood mapping)
+# ─────────────────────────────────────────────────────────────
+
+class TverskyLoss(nn.Module):
+    """
+    Tversky loss: generalised Dice that penalises False Negatives more.
+
+    L = 1 − (TP) / (TP + α·FP + β·FN + smooth)
+
+    Typical flood mapping settings:
+      α=0.3, β=0.7 → penalise missed floods (FN) 2.3× more than false alarms (FP)
+
+    At α=0.5, β=0.5 this reduces to standard Dice loss.
+
+    Ignores pixels with label == -1 (invalid / masked).
+    """
+
+    def __init__(self, alpha: float = 0.3, beta: float = 0.7,
+                 smooth: float = 1.0):
+        """
+        Args:
+            alpha: weight for false positives (lower → less penalty on FP)
+            beta:  weight for false negatives (higher → more penalty on FN)
+            smooth: Laplace smoothing constant
+        """
+        super().__init__()
+        self.alpha  = alpha
+        self.beta   = beta
+        self.smooth = smooth
+
+    def forward(self, logits: torch.Tensor,
+                labels: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            logits: (B, 1, H, W) raw model output
+            labels: (B, H, W)    int64, values 0/1, -1=ignore
+        """
+        logits_sq = logits.squeeze(1)   # (B, H, W)
+        valid = labels != -1
+        if valid.sum() == 0:
+            return torch.tensor(0.0, device=logits.device, requires_grad=True)
+
+        probs   = torch.sigmoid(logits_sq[valid])
+        targets = labels[valid].float()
+
+        tp = (probs * targets).sum()
+        fp = (probs * (1.0 - targets)).sum()
+        fn = ((1.0 - probs) * targets).sum()
+
+        tversky = (tp + self.smooth) / \
+                  (tp + self.alpha * fp + self.beta * fn + self.smooth)
+        return 1.0 - tversky
+
+
+# ─────────────────────────────────────────────────────────────
+# 5c. Focal + Dice loss  (focuses on hard examples + class balance)
+# ─────────────────────────────────────────────────────────────
+
+class FocalDiceLoss(nn.Module):
+    """
+    Focal loss + Dice loss for class-imbalanced segmentation.
+
+    Focal loss: down-weights easy negative pixels; forces model to
+    concentrate on hard, ambiguous flood pixels.
+      FL(p) = −(1−p)^γ · log(p)   [γ=2 typical]
+
+    Combined with Dice to stabilise training on very sparse flood pixels.
+    alpha controls mix: alpha*Focal + (1-alpha)*Dice
+
+    Ignores pixels with label == -1.
+    """
+
+    def __init__(self, gamma: float = 2.0, alpha: float = 0.5,
+                 smooth: float = 1.0):
+        """
+        Args:
+            gamma: focal loss exponent (2.0 is standard; 0 = cross-entropy)
+            alpha: weight for focal loss (1−alpha for Dice)
+            smooth: Dice smoothing constant
+        """
+        super().__init__()
+        self.gamma  = gamma
+        self.alpha  = alpha
+        self.smooth = smooth
+
+    def focal_loss(self, logits: torch.Tensor,
+                   targets: torch.Tensor) -> torch.Tensor:
+        probs = torch.sigmoid(logits)
+        ce    = F.binary_cross_entropy_with_logits(logits, targets, reduction="none")
+        p_t   = probs * targets + (1.0 - probs) * (1.0 - targets)
+        focal = ((1.0 - p_t) ** self.gamma) * ce
+        return focal.mean()
+
+    def dice_loss(self, logits: torch.Tensor,
+                  targets: torch.Tensor) -> torch.Tensor:
+        probs       = torch.sigmoid(logits)
+        intersection = (probs * targets).sum()
+        return 1.0 - (2.0 * intersection + self.smooth) / \
+               (probs.sum() + targets.sum() + self.smooth)
+
+    def forward(self, logits: torch.Tensor,
+                labels: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            logits: (B, 1, H, W) raw model output
+            labels: (B, H, W)    int64, values 0/1, -1=ignore
+        """
+        logits_sq = logits.squeeze(1)
+        valid = labels != -1
+        if valid.sum() == 0:
+            return torch.tensor(0.0, device=logits.device, requires_grad=True)
+
+        lv = logits_sq[valid]
+        tv = labels[valid].float()
+
+        fl = self.focal_loss(lv, tv)
+        dl = self.dice_loss(lv.unsqueeze(0), tv.unsqueeze(0))
+        return self.alpha * fl + (1.0 - self.alpha) * dl
+
+
+def build_loss(loss_type: str = "bce_dice",
+               pos_weight: float = 10.0,
+               alpha: float = 0.5) -> nn.Module:
+    """
+    Loss function factory for all training variants.
+
+    Args:
+        loss_type:  "bce_dice"   — BCE + Dice (default, balanced)
+                    "tversky"    — Tversky(α=0.3, β=0.7), recall-heavy
+                    "focal_dice" — Focal(γ=2) + Dice, hard-example focus
+        pos_weight: BCE positive class weight (only used for bce_dice)
+        alpha:      mix ratio for combined losses
+
+    Returns:
+        nn.Module with forward(logits, labels) → scalar loss
+    """
+    if loss_type == "bce_dice":
+        return FloodLoss(pos_weight=pos_weight, alpha=alpha)
+    elif loss_type == "tversky":
+        return TverskyLoss(alpha=0.3, beta=0.7)
+    elif loss_type == "focal_dice":
+        return FocalDiceLoss(gamma=2.0, alpha=alpha)
+    else:
+        raise ValueError(
+            f"Unknown loss_type '{loss_type}'. "
+            f"Valid: 'bce_dice', 'tversky', 'focal_dice'"
+        )
+
+
+# ─────────────────────────────────────────────────────────────
 # 6.  Ablation model factory
 # ─────────────────────────────────────────────────────────────
 
@@ -740,7 +909,67 @@ def build_model(variant: str = "D",
 
 
 # ─────────────────────────────────────────────────────────────
-# 7.  Sanity check
+# 7.  Gate attention hook (for --save_attention_maps)
+# ─────────────────────────────────────────────────────────────
+
+class GateAttentionHook:
+    """
+    Forward hook to capture HAND gate attention maps during inference.
+
+    Attaches to all HANDAttentionGate modules in a FloodSegmentationModel
+    and records the α (attention coefficient) tensors from each forward pass.
+
+    Usage:
+        hook = GateAttentionHook(model)
+        logits = model(batch_x)
+        maps = hook.get_maps()   # dict gate_name → (B, 1, H, W) tensor
+        hook.clear()
+        hook.remove()
+    """
+
+    def __init__(self, model: "FloodSegmentationModel"):
+        """
+        Args:
+            model: FloodSegmentationModel instance (use_hand_gate must be True)
+        """
+        self._maps: dict[str, torch.Tensor] = {}
+        self._handles: list = []
+
+        if not model.use_hand_gate:
+            return  # No gates to hook
+
+        # Attach to each HANDAttentionGate
+        for name, module in model.named_modules():
+            if isinstance(module, HANDAttentionGate):
+                handle = module.psi.register_forward_hook(
+                    self._make_hook(name)
+                )
+                self._handles.append(handle)
+
+    def _make_hook(self, name: str):
+        """Creates a closure capturing the gate name."""
+        def hook(module, input, output):
+            # output of psi is α: (B, 1, H, W)
+            self._maps[name] = output.detach().cpu()
+        return hook
+
+    def get_maps(self) -> dict[str, torch.Tensor]:
+        """Returns captured gate maps keyed by gate module path."""
+        return dict(self._maps)
+
+    def clear(self) -> None:
+        """Clears stored maps (call between forward passes)."""
+        self._maps.clear()
+
+    def remove(self) -> None:
+        """Removes all hooks from the model."""
+        for h in self._handles:
+            h.remove()
+        self._handles.clear()
+
+
+# ─────────────────────────────────────────────────────────────
+# 8.  Sanity check
 # ─────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -761,6 +990,24 @@ if __name__ == "__main__":
         assert logits.shape == (2, 1, 256, 256), \
             f"Expected (2,1,256,256), got {logits.shape}"
 
+    # Test forward_with_gates for Variant D (HAND gate visualisation)
+    print("\nGate visualisation test (Variant D):")
+    model_c = build_model("D", pretrained=False).to(device)
+    model_c.eval()
+    with torch.no_grad():
+        logits_g, gate_maps = model_c.forward_with_gates(batch)
+    assert gate_maps is not None and len(gate_maps) == 4
+    print(f"  forward_with_gates OK  gate0 shape={gate_maps[0].shape}")
+
+    # Test GateAttentionHook
+    print("\nGateAttentionHook test:")
+    hook = GateAttentionHook(model_c)
+    with torch.no_grad():
+        _ = model_c(batch)
+    maps = hook.get_maps()
+    print(f"  Captured {len(maps)} gate map(s): {list(maps.keys())}")
+    hook.remove()
+
     # Test MC Dropout inference (Variant D and D_plus)
     print("\nMC Dropout test (T=5 passes):")
     for mc_variant in ["D", "D_plus"]:
@@ -780,15 +1027,18 @@ if __name__ == "__main__":
         print(f"  {mc_variant} mean shape: {mean.shape}  "
               f"variance: {var.mean():.6f}  range=[{var.min():.6f}, {var.max():.6f}]")
 
-    # Test loss with last mc_variant model
-    print("\nLoss test:")
+    # Test loss functions
+    print("\nLoss function tests:")
     labels = torch.randint(0, 2, (2, 256, 256)).to(device)
     labels[0, :10, :10] = -1   # inject some ignore pixels
-    criterion = FloodLoss(pos_weight=10.0, alpha=0.5)
     model_d.train()
     logits = model_d(batch)
-    loss = criterion(logits, labels)
-    loss.backward()
-    print(f"  Loss value: {loss.item():.4f}  (backward OK)")
+    for lt in ["bce_dice", "tversky", "focal_dice"]:
+        crit = build_loss(lt, pos_weight=10.0, alpha=0.5)
+        loss = crit(logits, labels)
+        loss.backward()
+        print(f"  {lt:<12} loss={loss.item():.4f}  (backward OK)")
+        # Re-run forward for next loss test
+        logits = model_d(batch)
 
-    print("\nAll checks passed. Ready for Phase 3 (04_train.py).")
+    print("\nAll checks passed. Ready for training.")
