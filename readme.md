@@ -267,26 +267,3 @@ Training converges fast: C and D reach best validation IoU in ~15 epochs.  A req
 6. **Nobre et al. (2011)** — Original HAND paper. Physics motivation.
 
 ---
-
-## Git workflow (VPN constraint)
-
-```
-VPN ON  → Claude Code works, SSH to DKUCC blocked
-            → write code → commit → push to GitHub
-
-VPN OFF → SSH to DKUCC works, Claude Code blocked
-            → git pull → sbatch → disconnect (GPU keeps running)
-```
-
-GitHub is the bridge between local development and DKUCC.
-
----
-
-## Rules for Claude Code
-
-See `CLAUDE.md` for the authoritative rule set. Key points:
-- 6-band model input (never 7)
-- Bolivia is always test (never train/val)
-- `model.enable_dropout()` required after `model.eval()` for MC passes
-- Log loss + IoU + LR to TensorBoard every epoch
-- All 4 ablation variants must run from the same codebase
