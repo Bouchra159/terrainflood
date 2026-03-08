@@ -1,14 +1,14 @@
 {
   "overall": {
-    "gated_exposure": 8073.0,
-    "deterministic_exposure": 8073.0,
+    "gated_exposure": 2747.1,
+    "deterministic_exposure": 2747.1,
     "uncertain_exposure": 0.0,
     "uncertainty_threshold": 0.05
   },
   "per_event": {
     "Bolivia": {
-      "gated_exposure": 8073.0,
-      "deterministic_exposure": 8073.0,
+      "gated_exposure": 2747.1,
+      "deterministic_exposure": 2747.1,
       "uncertain_exposure": 0.0,
       "mean_coverage": 1.0,
       "n_chips": 15
@@ -16,8 +16,8 @@
   },
   "per_chip": [
     {
-      "deterministic_exposure": 228.2,
-      "gated_exposure": 228.2,
+      "deterministic_exposure": 219.9,
+      "gated_exposure": 219.9,
       "uncertain_exposure": 0.0,
       "coverage": 1.0,
       "trusted_pixels": 88077,
@@ -26,8 +26,8 @@
       "event": "Bolivia"
     },
     {
-      "deterministic_exposure": 332.1,
-      "gated_exposure": 332.1,
+      "deterministic_exposure": 379.5,
+      "gated_exposure": 379.5,
       "uncertain_exposure": 0.0,
       "coverage": 1.0,
       "trusted_pixels": 237814,
@@ -36,8 +36,8 @@
       "event": "Bolivia"
     },
     {
-      "deterministic_exposure": 2754.7,
-      "gated_exposure": 2754.7,
+      "deterministic_exposure": 258.5,
+      "gated_exposure": 258.5,
       "uncertain_exposure": 0.0,
       "coverage": 1.0,
       "trusted_pixels": 261335,
@@ -46,8 +46,8 @@
       "event": "Bolivia"
     },
     {
-      "deterministic_exposure": 578.4,
-      "gated_exposure": 578.4,
+      "deterministic_exposure": 354.6,
+      "gated_exposure": 354.6,
       "uncertain_exposure": 0.0,
       "coverage": 1.0,
       "trusted_pixels": 209479,
@@ -56,8 +56,8 @@
       "event": "Bolivia"
     },
     {
-      "deterministic_exposure": 228.9,
-      "gated_exposure": 228.9,
+      "deterministic_exposure": 27.6,
+      "gated_exposure": 27.6,
       "uncertain_exposure": 0.0,
       "coverage": 1.0,
       "trusted_pixels": 150537,
@@ -66,8 +66,8 @@
       "event": "Bolivia"
     },
     {
-      "deterministic_exposure": 812.2,
-      "gated_exposure": 812.2,
+      "deterministic_exposure": 381.7,
+      "gated_exposure": 381.7,
       "uncertain_exposure": 0.0,
       "coverage": 1.0,
       "trusted_pixels": 175507,
@@ -76,8 +76,8 @@
       "event": "Bolivia"
     },
     {
-      "deterministic_exposure": 1038.7,
-      "gated_exposure": 1038.7,
+      "deterministic_exposure": 429.1,
+      "gated_exposure": 429.1,
       "uncertain_exposure": 0.0,
       "coverage": 1.0,
       "trusted_pixels": 204633,
@@ -86,8 +86,8 @@
       "event": "Bolivia"
     },
     {
-      "deterministic_exposure": 11.8,
-      "gated_exposure": 11.8,
+      "deterministic_exposure": 3.7,
+      "gated_exposure": 3.7,
       "uncertain_exposure": 0.0,
       "coverage": 1.0,
       "trusted_pixels": 130472,
@@ -96,8 +96,8 @@
       "event": "Bolivia"
     },
     {
-      "deterministic_exposure": 329.2,
-      "gated_exposure": 329.2,
+      "deterministic_exposure": 67.0,
+      "gated_exposure": 67.0,
       "uncertain_exposure": 0.0,
       "coverage": 1.0,
       "trusted_pixels": 158008,
@@ -106,8 +106,8 @@
       "event": "Bolivia"
     },
     {
-      "deterministic_exposure": 238.4,
-      "gated_exposure": 238.4,
+      "deterministic_exposure": 179.4,
+      "gated_exposure": 179.4,
       "uncertain_exposure": 0.0,
       "coverage": 1.0,
       "trusted_pixels": 188845,
@@ -116,8 +116,8 @@
       "event": "Bolivia"
     },
     {
-      "deterministic_exposure": 292.6,
-      "gated_exposure": 292.6,
+      "deterministic_exposure": 41.3,
+      "gated_exposure": 41.3,
       "uncertain_exposure": 0.0,
       "coverage": 1.0,
       "trusted_pixels": 254091,
@@ -126,8 +126,8 @@
       "event": "Bolivia"
     },
     {
-      "deterministic_exposure": 450.0,
-      "gated_exposure": 450.0,
+      "deterministic_exposure": 141.2,
+      "gated_exposure": 141.2,
       "uncertain_exposure": 0.0,
       "coverage": 1.0,
       "trusted_pixels": 262144,
@@ -136,8 +136,8 @@
       "event": "Bolivia"
     },
     {
-      "deterministic_exposure": 272.5,
-      "gated_exposure": 272.5,
+      "deterministic_exposure": 216.1,
+      "gated_exposure": 216.1,
       "uncertain_exposure": 0.0,
       "coverage": 1.0,
       "trusted_pixels": 156889,
@@ -146,8 +146,8 @@
       "event": "Bolivia"
     },
     {
-      "deterministic_exposure": 181.1,
-      "gated_exposure": 181.1,
+      "deterministic_exposure": 33.0,
+      "gated_exposure": 33.0,
       "uncertain_exposure": 0.0,
       "coverage": 1.0,
       "trusted_pixels": 199019,
@@ -156,8 +156,8 @@
       "event": "Bolivia"
     },
     {
-      "deterministic_exposure": 324.2,
-      "gated_exposure": 324.2,
+      "deterministic_exposure": 14.5,
+      "gated_exposure": 14.5,
       "uncertain_exposure": 0.0,
       "coverage": 1.0,
       "trusted_pixels": 190965,

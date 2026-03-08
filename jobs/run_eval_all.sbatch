@@ -69,6 +69,25 @@ done
 # ── 3. Exposure analysis with TTA uncertainty ───────────────────
 # Uses results/uncertainty_tta/ arrays produced by run_tta_uncertainty.sbatch
 echo "=== EXPOSURE ANALYSIS ==="
+
+# Exposure analysis for key models
+for VARIANT in D D_full C_full; do
+    CKPT="checkpoints/variant_${VARIANT}/best.pt"
+    if [ -f "$CKPT" ]; then
+        echo "--- Exposure for Variant ${VARIANT} ---"
+        python -u 06_exposure.py \
+            --checkpoint "$CKPT" \
+            --data_root data/sen1floods11 \
+            --output_dir "results/exposure_${VARIANT}" \
+            --T 20 \
+            --batch_size 4 \
+            --num_workers 4
+    else
+        echo "--- Exposure for Variant ${VARIANT}: checkpoint not found, skipping ---"
+    fi
+done
+
+echo "=== EXPOSURE ANALYSIS DONE ==="
 if [ -d "results/uncertainty_tta" ]; then
     python -u 06_exposure.py \
         --uncertainty_dir results/uncertainty_tta \
