@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=TerrainFlood_E
+#SBATCH --job-name=TerrainFlood_D_Tversky
 #SBATCH --partition=l20-gpu
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=10:00:00
-#SBATCH --output=logs/train_E_%j.out
-#SBATCH --error=logs/train_E_%j.err
+#SBATCH --output=logs/train_D_tversky_%j.out
+#SBATCH --error=logs/train_D_tversky_%j.err
 
 set -euo pipefail
 echo "=== JOB START ==="
@@ -34,13 +34,15 @@ echo "=== PIPELINE AUDIT ==="
 python tools/audit_pipeline.py --data_root data/sen1floods11 --skip_val_loop --skip_sampler
 echo "=== AUDIT PASSED — STARTING TRAINING ==="
 
-# Variant E: HAND gate + MC Dropout + input-space change detection (post − pre)
-# Isolates the exact contribution of bi-temporal encoding over Variant D.
-# Expect ~30–40 epochs before plateau; same convergence speed as D.
+# Variant D with Tversky loss (α=0.3, β=0.7): penalises missed floods more.
+# Tversky is recall-heavy — expect higher recall (+5–8 pp) at slight precision cost.
+# Use same LR/LR schedule as Variant D; Tversky converges on similar timescale.
+# Compare best.pt IoU vs checkpoints/variant_D/best.pt to assess recall trade-off.
 python -u train.py \
-    --variant E \
+    --variant D \
+    --loss_type tversky \
     --data_root data/sen1floods11 \
-    --output_dir checkpoints/variant_E \
+    --output_dir checkpoints/variant_D_tversky \
     --epochs 50 \
     --batch_size 8 \
     --patch_size 256 \

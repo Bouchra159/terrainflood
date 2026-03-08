@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=TerrainFlood_E
+#SBATCH --job-name=TerrainFlood_Baseline
 #SBATCH --partition=l20-gpu
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
-#SBATCH --time=10:00:00
-#SBATCH --output=logs/train_E_%j.out
-#SBATCH --error=logs/train_E_%j.err
+#SBATCH --time=8:00:00
+#SBATCH --output=logs/train_baseline_%j.out
+#SBATCH --error=logs/train_baseline_%j.err
 
 set -euo pipefail
 echo "=== JOB START ==="
@@ -34,13 +34,14 @@ echo "=== PIPELINE AUDIT ==="
 python tools/audit_pipeline.py --data_root data/sen1floods11 --skip_val_loop --skip_sampler
 echo "=== AUDIT PASSED — STARTING TRAINING ==="
 
-# Variant E: HAND gate + MC Dropout + input-space change detection (post − pre)
-# Isolates the exact contribution of bi-temporal encoding over Variant D.
-# Expect ~30–40 epochs before plateau; same convergence speed as D.
+# Baseline U-Net: SAR-only post-event, no HAND, no MC Dropout, no gate.
+# Equivalent to Variant A but named explicitly for reviewer clarity.
+# This is the "plain U-Net" ablation baseline — expected IoU ≈ 0.40–0.45.
+# Saves to checkpoints/variant_baseline_unet so eval.py auto-detects it.
 python -u train.py \
-    --variant E \
+    --variant baseline_unet \
     --data_root data/sen1floods11 \
-    --output_dir checkpoints/variant_E \
+    --output_dir checkpoints/variant_baseline_unet \
     --epochs 50 \
     --batch_size 8 \
     --patch_size 256 \
