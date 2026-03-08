@@ -17,6 +17,9 @@ Ablation variants controlled by config flags:
   use_hand_gate=False, hand_as_band=True   →  Variant B: HAND as extra band
   use_hand_gate=True,  hand_as_band=False  →  Variant C: HAND gate, no UQ
   use_hand_gate=True  + MC dropout T>1     →  Variant D: full model (ours)
+  use_hand_gate=True  + MC dropout + diff  →  Variant E: + input-space change detection
+  use_hand_gate=True  + encoder dropout    →  Variant D_plus: encoder + decoder UQ
+  use_hand_gate=False, SAR only            →  baseline_unet: equivalent to A
 """
 
 import numpy as np
@@ -181,28 +184,47 @@ class SiameseEncoder(nn.Module):
     """
     Dual-branch ResNet-34 encoder with shared weights.
 
-    Input:  pre-event  (B, 2, H, W) — VV_pre,  VH_pre
-            post-event (B, 2, H, W) — VV_post, VH_post
+    Input:  pre-event  (B, C, H, W) — e.g. VV_pre,  VH_pre
+            post-event (B, C, H, W) — e.g. VV_post, VH_post
 
-    The first conv layer is rebuilt to accept 2-channel input
+    The first conv layer is rebuilt to accept in_channels input
     (SAR only has VV + VH, not 3 RGB channels).
 
-    Outputs feature pyramid from both branches, then returns
-    the element-wise DIFFERENCE at each scale:
-        diff_i = post_features_i - pre_features_i
+    Mode controlled by use_diff:
+      use_diff=False (Variants A–D):
+        Encodes the post image only (single-date baseline).
+        Pre is accepted but not used — A–D are post-only models.
 
-    Difference encoding is theoretically motivated for change detection:
-    flooding = what changed between pre and post.
+      use_diff=True (Variant E):
+        Computes input-space difference (post − pre) and encodes that.
+        This is true change detection: the encoder sees what changed
+        between acquisitions, not the absolute backscatter.
+        Input-space diff avoids the near-zero feature-space collapse that
+        occurs when pre/post ResNet features are nearly identical for the
+        ~91% of non-flooded pixels.
+
+    Optional encoder dropout (Variant D_plus):
+      encoder_dropout_rate > 0 adds Dropout2d after each encoder stage,
+      extending MC Dropout uncertainty into the feature extractor.
     """
 
-    def __init__(self, pretrained: bool = True, in_channels: int = 2):
+    def __init__(
+        self,
+        pretrained:           bool  = True,
+        in_channels:          int   = 2,
+        use_diff:             bool  = False,
+        encoder_dropout_rate: float = 0.0,
+    ):
         """
         Args:
-            pretrained:  use ImageNet-pretrained ResNet-34 weights
-            in_channels: number of input channels per branch.
-                         2 for standard SAR (VV+VH), 3 for Variant B (VV+VH+HAND).
+            pretrained:           use ImageNet-pretrained ResNet-34 weights
+            in_channels:          channels per branch (2 for VV+VH, 3 for VV+VH+HAND)
+            use_diff:             if True, encode (post − pre) instead of post alone
+            encoder_dropout_rate: Dropout2d rate applied after each encoder stage (0=off)
         """
         super().__init__()
+        self.use_diff             = use_diff
+        self.encoder_dropout_rate = encoder_dropout_rate
 
         # Load ResNet-34 backbone
         if pretrained:
@@ -231,28 +253,54 @@ class SiameseEncoder(nn.Module):
         self.layer3 = backbone.layer3                     # → (B, 256, H/16, W/16)
         self.layer4 = backbone.layer4                     # → (B, 512, H/32, W/32)
 
+        # Optional encoder dropout (active at train + inference when enabled)
+        if encoder_dropout_rate > 0.0:
+            self.enc_drop0 = nn.Dropout2d(p=encoder_dropout_rate)
+            self.enc_drop1 = nn.Dropout2d(p=encoder_dropout_rate)
+            self.enc_drop2 = nn.Dropout2d(p=encoder_dropout_rate)
+            self.enc_drop3 = nn.Dropout2d(p=encoder_dropout_rate)
+            self.enc_drop4 = nn.Dropout2d(p=encoder_dropout_rate)
+        else:
+            self.enc_drop0 = nn.Identity()
+            self.enc_drop1 = nn.Identity()
+            self.enc_drop2 = nn.Identity()
+            self.enc_drop3 = nn.Identity()
+            self.enc_drop4 = nn.Identity()
+
     def encode_single(self, x: torch.Tensor) -> list[torch.Tensor]:
         """Forward one branch. Returns feature list [s0,s1,s2,s3,s4]."""
-        s0 = self.stem(x)           # (B,  64, H/2,  W/2)
+        s0 = self.enc_drop0(self.stem(x))   # (B,  64, H/2,  W/2)
         s0p = self.pool(s0)
-        s1 = self.layer1(s0p)       # (B,  64, H/4,  W/4)
-        s2 = self.layer2(s1)        # (B, 128, H/8,  W/8)
-        s3 = self.layer3(s2)        # (B, 256, H/16, W/16)
-        s4 = self.layer4(s3)        # (B, 512, H/32, W/32)
+        s1 = self.enc_drop1(self.layer1(s0p))  # (B,  64, H/4,  W/4)
+        s2 = self.enc_drop2(self.layer2(s1))   # (B, 128, H/8,  W/8)
+        s3 = self.enc_drop3(self.layer3(s2))   # (B, 256, H/16, W/16)
+        s4 = self.enc_drop4(self.layer4(s3))   # (B, 512, H/32, W/32)
         return [s0, s1, s2, s3, s4]
 
     def forward(self, pre: torch.Tensor,
                 post: torch.Tensor) -> list[torch.Tensor]:
         """
-        Returns list of encoder feature maps: [s0, s1, s2, s3, s4]
+        Returns list of encoder feature maps: [s0, s1, s2, s3, s4].
 
-        Sen1Floods11 is a single-date dataset: pre and post are the same
-        chip normalised with identical statistics, so post - pre == 0
-        everywhere. Difference encoding is only valid for true bi-temporal
-        pairs; for single-date data we encode the post image directly.
+        use_diff=False (Variants A–D):
+          Encodes the post image only.  Pre is passed but not used.
+          Single-date SAR: A–D are post-event only models.
+
+        use_diff=True (Variant E):
+          Encodes (post − pre) at the INPUT level before any ResNet layers.
+          This is the correct change detection approach: the network sees
+          the SAR difference signal directly, which is non-zero only where
+          surface reflectivity changed (flooded pixels).
         """
-        post_feats = self.encode_single(post)
-        return post_feats
+        if self.use_diff:
+            # Input-space change detection: difference before any feature extraction
+            # diff > 0: surface got darker  (backscatter decreased → possible flood)
+            # diff < 0: surface got brighter (backscatter increased)
+            diff = post - pre                         # (B, C, H, W)
+            return self.encode_single(diff)
+        else:
+            # Post-only encoding (Variants A, B, C, D)
+            return self.encode_single(post)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -268,10 +316,14 @@ class FloodSegmentationModel(nn.Module):
       - Optional population band (appended to bottleneck)
 
     Ablation config:
-      use_hand_gate (bool): if False, skip connections are not gated
-      hand_as_band  (bool): if True, HAND is concatenated as input band
-                            (only meaningful when use_hand_gate=False)
-      dropout_rate  (float): set to 0.0 to disable MC Dropout
+      use_hand_gate        (bool):  if False, skip connections are not gated
+      hand_as_band         (bool):  if True, HAND is concatenated as input band
+                                    (only meaningful when use_hand_gate=False)
+      dropout_rate         (float): decoder MC Dropout rate (0.0 = no MC Dropout)
+      use_diff             (bool):  if True, encode (post − pre) input-space diff
+                                    (Variant E — true change detection)
+      encoder_dropout_rate (float): encoder Dropout2d rate (0.0 = off)
+                                    (Variant D_plus only)
 
     Input tensor channel layout (from 02_dataset.py):
       [0] VV_pre
@@ -285,10 +337,12 @@ class FloodSegmentationModel(nn.Module):
                          denormalises to metres before passing to the gate
 
     Encoder input per variant:
-      Variant A (SAR only):   pre=[ch0,ch1]  post=[ch2,ch3]  — 2-ch per branch
-      Variant B (HAND band):  pre=[ch0,ch1,ch5]  post=[ch2,ch3,ch5]  — 3-ch
-      Variant C (HAND gate):  pre=[ch0,ch1]  post=[ch2,ch3]; ch5→gate
-      Variant D (full model): same as C + MC Dropout active at inference
+      Variant A (SAR only):      pre=[ch0,ch1]  post=[ch2,ch3]  — 2-ch post-only
+      Variant B (HAND band):     pre=[ch0,ch1,ch5]  post=[ch2,ch3,ch5]  — 3-ch
+      Variant C (HAND gate):     pre=[ch0,ch1]  post=[ch2,ch3]; ch5→gate
+      Variant D (full model):    same as C + decoder MC Dropout
+      Variant E (change detect): same as D but encode (post−pre) diff input
+      Variant D_plus (enc+dec dropout): same as D + encoder Dropout2d
 
     Note: WorldPop is NOT a model input. It is used only in 06_exposure.py
     post-prediction for population exposure estimation.
@@ -296,21 +350,30 @@ class FloodSegmentationModel(nn.Module):
 
     def __init__(
         self,
-        pretrained:    bool  = True,
-        use_hand_gate: bool  = True,    # Variant C/D vs A/B
-        hand_as_band:  bool  = False,   # Variant B only
-        dropout_rate:  float = 0.3,     # 0.0 = no MC Dropout
+        pretrained:           bool  = True,
+        use_hand_gate:        bool  = True,    # Variant C/D/E vs A/B
+        hand_as_band:         bool  = False,   # Variant B only
+        dropout_rate:         float = 0.3,     # 0.0 = no decoder MC Dropout
+        use_diff:             bool  = False,   # Variant E: input-space change detection
+        encoder_dropout_rate: float = 0.0,     # Variant D_plus: encoder MC Dropout
     ):
         super().__init__()
 
-        self.use_hand_gate = use_hand_gate
-        self.hand_as_band  = hand_as_band
-        self.dropout_rate  = dropout_rate
+        self.use_hand_gate        = use_hand_gate
+        self.hand_as_band         = hand_as_band
+        self.dropout_rate         = dropout_rate
+        self.use_diff             = use_diff
+        self.encoder_dropout_rate = encoder_dropout_rate
 
         # ── Encoder ─────────────────────────────────────────
         # Variant B: HAND concatenated onto SAR → 3-channel per branch
         encoder_in_ch = 3 if (hand_as_band and not use_hand_gate) else 2
-        self.encoder  = SiameseEncoder(pretrained=pretrained, in_channels=encoder_in_ch)
+        self.encoder  = SiameseEncoder(
+            pretrained=pretrained,
+            in_channels=encoder_in_ch,
+            use_diff=use_diff,
+            encoder_dropout_rate=encoder_dropout_rate,
+        )
 
         # ── HAND gates (one per decoder level) ──────────────
         # Only created if use_hand_gate=True
@@ -627,25 +690,49 @@ class FloodLoss(nn.Module):
 def build_model(variant: str = "D",
                 pretrained: bool = True) -> FloodSegmentationModel:
     """
-    Factory for the 4 ablation variants.
+    Factory for all ablation variants.
 
-    Variant A — SAR only baseline (no HAND, no UQ)
-    Variant B — HAND as extra input band (no gate, no UQ)
-    Variant C — HAND gate, no MC Dropout
-    Variant D — Full model: HAND gate + MC Dropout  ← paper submission
+    Core ablation (paper Table 2):
+      Variant A — SAR only, post-event, no HAND, no UQ
+      Variant B — HAND concatenated as extra input band
+      Variant C — HAND gate attention, no MC Dropout
+      Variant D — Full model: HAND gate + decoder MC Dropout  ← main result
+
+    Extended variants:
+      Variant E         — same as D but encodes (post−pre) input-space difference
+                          (true change detection; isolates bi-temporal contribution)
+      Variant D_plus    — same as D but with encoder Dropout2d too (encoder + decoder UQ)
+      baseline_unet     — alias for Variant A; explicit SAR-only baseline for reviewers
 
     Usage:
         model = build_model("D")
-        print(model.count_parameters())
+        model = build_model("E")           # change detection
+        model = build_model("D_plus")      # encoder + decoder dropout
+        model = build_model("baseline_unet")
     """
-    configs = {
-        "A": dict(use_hand_gate=False, hand_as_band=False, dropout_rate=0.0),
-        "B": dict(use_hand_gate=False, hand_as_band=True,  dropout_rate=0.0),
-        "C": dict(use_hand_gate=True,  hand_as_band=False, dropout_rate=0.0),
-        "D": dict(use_hand_gate=True,  hand_as_band=False, dropout_rate=0.3),
+    configs: dict[str, dict] = {
+        # Core ablation variants
+        "A": dict(use_hand_gate=False, hand_as_band=False, dropout_rate=0.0,
+                  use_diff=False, encoder_dropout_rate=0.0),
+        "B": dict(use_hand_gate=False, hand_as_band=True,  dropout_rate=0.0,
+                  use_diff=False, encoder_dropout_rate=0.0),
+        "C": dict(use_hand_gate=True,  hand_as_band=False, dropout_rate=0.0,
+                  use_diff=False, encoder_dropout_rate=0.0),
+        "D": dict(use_hand_gate=True,  hand_as_band=False, dropout_rate=0.3,
+                  use_diff=False, encoder_dropout_rate=0.0),
+        # Extended variants
+        "E": dict(use_hand_gate=True,  hand_as_band=False, dropout_rate=0.3,
+                  use_diff=True,  encoder_dropout_rate=0.0),
+        "D_plus": dict(use_hand_gate=True,  hand_as_band=False, dropout_rate=0.5,
+                       use_diff=False, encoder_dropout_rate=0.2),
+        "baseline_unet": dict(use_hand_gate=False, hand_as_band=False, dropout_rate=0.0,
+                              use_diff=False, encoder_dropout_rate=0.0),
     }
     if variant not in configs:
-        raise ValueError(f"Variant must be A/B/C/D, got '{variant}'")
+        raise ValueError(
+            f"Unknown variant '{variant}'. "
+            f"Valid: {sorted(configs.keys())}"
+        )
 
     model = FloodSegmentationModel(pretrained=pretrained, **configs[variant])
     print(f"Built Variant {variant}: {model.count_parameters()}")
@@ -660,10 +747,10 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}\n")
 
-    # Test all 4 variants — 6-band input (no pop_log)
+    # Test all variants — 6-band input (no pop_log)
     batch = torch.randn(2, 6, 256, 256).to(device)
 
-    for variant in ["A", "B", "C", "D"]:
+    for variant in ["A", "B", "C", "D", "E", "D_plus", "baseline_unet"]:
         model = build_model(variant, pretrained=False).to(device)
         model.train()
 
@@ -674,27 +761,26 @@ if __name__ == "__main__":
         assert logits.shape == (2, 1, 256, 256), \
             f"Expected (2,1,256,256), got {logits.shape}"
 
-    # Test MC Dropout inference (Variant D)
+    # Test MC Dropout inference (Variant D and D_plus)
     print("\nMC Dropout test (T=5 passes):")
-    model_d = build_model("D", pretrained=False).to(device)
-    model_d.eval()
-    model_d.enable_dropout()   # keep dropout active
+    for mc_variant in ["D", "D_plus"]:
+        model_d = build_model(mc_variant, pretrained=False).to(device)
+        model_d.eval()
+        model_d.enable_dropout()   # keep dropout active
 
-    preds = []
-    with torch.no_grad():
-        for t in range(5):
-            logits = model_d(batch)
-            preds.append(torch.sigmoid(logits))
+        preds = []
+        with torch.no_grad():
+            for t in range(5):
+                logits = model_d(batch)
+                preds.append(torch.sigmoid(logits))
 
-    preds  = torch.stack(preds)          # (T, B, 1, H, W)
-    mean   = preds.mean(0)
-    var    = preds.var(0)
-    print(f"  Predictive mean  shape: {mean.shape}")
-    print(f"  Predictive var   shape: {var.shape}")
-    print(f"  Mean variance (uncertainty): {var.mean():.4f}")
-    print(f"  Variance range: [{var.min():.4f}, {var.max():.4f}]")
+        preds  = torch.stack(preds)          # (T, B, 1, H, W)
+        mean   = preds.mean(0)
+        var    = preds.var(0)
+        print(f"  {mc_variant} mean shape: {mean.shape}  "
+              f"variance: {var.mean():.6f}  range=[{var.min():.6f}, {var.max():.6f}]")
 
-    # Test loss
+    # Test loss with last mc_variant model
     print("\nLoss test:")
     labels = torch.randint(0, 2, (2, 256, 256)).to(device)
     labels[0, :10, :10] = -1   # inject some ignore pixels

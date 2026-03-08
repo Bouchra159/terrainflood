@@ -398,8 +398,10 @@ def train(args: argparse.Namespace) -> None:
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="TerrainFlood-UQ Training")
     p.add_argument("--variant",    type=str,   default="D",
-                   choices=["A", "B", "C", "D"],
-                   help="Ablation variant (A=SAR only, D=full model)")
+                   choices=["A", "B", "C", "D", "E", "D_plus", "baseline_unet"],
+                   help="Ablation variant (A=SAR only, D=full model, "
+                        "E=change detection, D_plus=enc+dec dropout, "
+                        "baseline_unet=alias for A)")
     p.add_argument("--data_root",  type=str,   default="data/sen1floods11")
     p.add_argument("--output_dir", type=str,   default="checkpoints/variant_D")
     p.add_argument("--epochs",     type=int,   default=50)

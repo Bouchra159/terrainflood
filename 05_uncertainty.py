@@ -120,7 +120,77 @@ def mc_dropout_inference(
 
 
 # ─────────────────────────────────────────────────────────────
-# 1b. Logit collection (single forward pass — for temperature scaling)
+# 1b. Test-Time Augmentation (TTA) inference
+# ─────────────────────────────────────────────────────────────
+
+@torch.no_grad()
+def tta_inference(
+    model:    torch.nn.Module,
+    loader:   torch.utils.data.DataLoader,
+    device:   torch.device,
+) -> list[dict]:
+    """
+    Test-Time Augmentation (TTA) inference using 8 geometric transforms.
+
+    Applies the D4 symmetry group (4 rotations × 2 flips) to each chip,
+    runs a single forward pass per augmentation, then averages predictions.
+    The variance across augmented predictions provides a geometric uncertainty
+    signal without requiring MC Dropout or model retraining.
+
+    TTA is especially useful for Variants A/B/C (dropout_rate=0.0) where
+    MC Dropout produces zero variance. TTA gives 5–15x larger variance signal
+    that is correlated with model prediction difficulty.
+
+    Returns the same format as mc_dropout_inference() for drop-in compatibility.
+    """
+    model.eval()
+
+    results = []
+
+    for batch in tqdm(loader, desc="TTA inference (8 augmentations)"):
+        images   = batch["image"].to(device)   # (B, 6, H, W)
+        labels   = batch["label"]
+        events   = batch["event"]
+        chip_ids = batch["chip_id"]
+
+        B, C, H, W = images.shape
+        tta_preds: list[torch.Tensor] = []
+
+        # 8 augmentations: 4 rotations × 2 flips
+        for k in range(4):              # 0°, 90°, 180°, 270°
+            for flip in [False, True]:  # no flip, horizontal flip
+                aug = torch.rot90(images, k=k, dims=(-2, -1))
+                if flip:
+                    aug = torch.flip(aug, dims=[-1])
+
+                logits = model(aug)                         # (B, 1, H, W)
+                probs  = torch.sigmoid(logits).squeeze(1)  # (B, H, W)
+
+                # Invert augmentation on prediction
+                if flip:
+                    probs = torch.flip(probs, dims=[-1])
+                probs = torch.rot90(probs, k=(4 - k) % 4, dims=(-2, -1))
+
+                tta_preds.append(probs.cpu())
+
+        tta_preds = torch.stack(tta_preds, dim=0)   # (8, B, H, W)
+        mean_prob = tta_preds.mean(dim=0)            # (B, H, W)
+        variance  = tta_preds.var(dim=0)             # (B, H, W)
+
+        for i in range(B):
+            results.append({
+                "mean_prob": mean_prob[i].numpy(),
+                "variance":  variance[i].numpy(),
+                "label":     labels[i].numpy(),
+                "event":     events[i],
+                "chip_id":   chip_ids[i],
+            })
+
+    return results
+
+
+# ─────────────────────────────────────────────────────────────
+# 1c. Logit collection (single forward pass — for temperature scaling)
 # ─────────────────────────────────────────────────────────────
 
 @torch.no_grad()
@@ -253,7 +323,99 @@ def compute_brier_score(
 
 
 # ─────────────────────────────────────────────────────────────
-# 3b. Temperature scaling
+# 3b. Logit distribution diagnostics
+# ─────────────────────────────────────────────────────────────
+
+def analyze_logit_distribution(
+    logits: np.ndarray,
+    labels: np.ndarray,
+    out_path: str | None = None,
+    ignore_value: int = -1,
+) -> dict:
+    """
+    Diagnostic analysis of raw model logit distribution.
+
+    Helps explain extreme optimal temperatures (e.g. T=0.100 means the
+    model is severely overconfident — logits span ±50 instead of ±3).
+
+    For a well-calibrated binary classifier:
+      - Flood logits    should cluster around +1 to +3
+      - No-flood logits should cluster around −1 to −3
+      - T ≈ 1.0 means calibration is good
+      - T < 0.5 means the model is over-confident (logits too large)
+      - T > 2.0 means the model is under-confident (logits too small)
+
+    Args:
+        logits:       (N,) or (H, W) raw model output (before sigmoid)
+        labels:       same shape as logits, int (0/1/-1)
+        out_path:     optional path to save histogram figure
+        ignore_value: label value to exclude
+
+    Returns:
+        dict with keys: mean_flood, std_flood, mean_no_flood, std_no_flood,
+                        p95_abs, fraction_extreme (|logit| > 10)
+    """
+    logits = logits.flatten().astype(np.float32)
+    labels = labels.flatten()
+
+    valid      = labels != ignore_value
+    logits_v   = logits[valid]
+    labels_v   = labels[valid]
+
+    flood_mask    = labels_v == 1
+    no_flood_mask = labels_v == 0
+
+    flood_logits    = logits_v[flood_mask]
+    no_flood_logits = logits_v[no_flood_mask]
+
+    stats = {
+        "n_flood":          int(flood_mask.sum()),
+        "n_no_flood":       int(no_flood_mask.sum()),
+        "mean_flood":       float(flood_logits.mean())    if flood_mask.any()    else float("nan"),
+        "std_flood":        float(flood_logits.std())     if flood_mask.any()    else float("nan"),
+        "mean_no_flood":    float(no_flood_logits.mean()) if no_flood_mask.any() else float("nan"),
+        "std_no_flood":     float(no_flood_logits.std())  if no_flood_mask.any() else float("nan"),
+        "p95_abs":          float(np.percentile(np.abs(logits_v), 95)),
+        "fraction_extreme": float((np.abs(logits_v) > 10).mean()),
+    }
+
+    # Interpretation hint
+    p95 = stats["p95_abs"]
+    if p95 > 10:
+        hint = (f"SEVERELY overconfident (95th‐pct |logit|={p95:.1f}). "
+                f"Expected temperature T ≈ {p95/3:.2f} to re-calibrate to ±3 range.")
+    elif p95 > 5:
+        hint = (f"Moderately overconfident (95th‐pct |logit|={p95:.1f}). "
+                f"Expected T ≈ {p95/3:.2f}.")
+    else:
+        hint = f"Logit range looks reasonable (95th‐pct |logit|={p95:.1f})."
+    stats["interpretation"] = hint
+    print(f"[analyze_logit_distribution] {hint}")
+
+    if out_path is not None:
+        import matplotlib.pyplot as _plt
+        fig, ax = _plt.subplots(figsize=(8, 4))
+        if no_flood_mask.any():
+            ax.hist(no_flood_logits, bins=100, alpha=0.6, label="No-flood (0)",
+                    color="steelblue", density=True)
+        if flood_mask.any():
+            ax.hist(flood_logits, bins=100, alpha=0.6, label="Flood (1)",
+                    color="firebrick", density=True)
+        ax.axvline(0, color="black", linestyle="--", linewidth=1)
+        ax.set_xlabel("Raw logit (pre-sigmoid)", fontsize=11)
+        ax.set_ylabel("Density", fontsize=11)
+        ax.set_title(f"Logit distribution — {hint[:60]}", fontsize=10)
+        ax.legend(fontsize=10)
+        _plt.tight_layout()
+        _plt.savefig(out_path, dpi=150, bbox_inches="tight")
+        _plt.close()
+        print(f"  Saved: {out_path}")
+
+    return stats
+
+
+# ─────────────────────────────────────────────────────────────
+# 3c. Temperature scaling
 # ─────────────────────────────────────────────────────────────
 
 def temperature_scale(
@@ -499,8 +661,22 @@ def run_uncertainty(args):
         temp_path.write_text(json.dumps({"temperature": temperature}, indent=2))
         print(f"  Saved → {temp_path}")
 
-    # MC Dropout inference
-    results = mc_dropout_inference(model, test_loader, device, T=args.T)
+    # ── Logit distribution diagnostic (optional) ────────────────
+    if getattr(args, "analyze_logits", False):
+        print("Analysing logit distribution on val set...")
+        val_logits_diag, val_labels_diag = collect_logits(model, val_loader, device)
+        analyze_logit_distribution(
+            val_logits_diag, val_labels_diag,
+            out_path=str(out_dir / "logit_distribution.png"),
+        )
+
+    # ── Inference (MC Dropout or TTA) ───────────────────────────
+    use_tta = getattr(args, "use_tta", False)
+    if use_tta:
+        print(f"Using TTA inference (8 augmentations)...")
+        results = tta_inference(model, test_loader, device)
+    else:
+        results = mc_dropout_inference(model, test_loader, device, T=args.T)
     print(f"\nProcessed {len(results)} chips\n")
 
     # Apply temperature scaling to mean_prob if calibration was run
@@ -574,6 +750,17 @@ def run_uncertainty(args):
             out_path   = str(out_dir / "maps" / fname),
         )
 
+    # Optional: save mean_prob and variance as .npy for downstream tools
+    if getattr(args, "save_arrays", False):
+        arrays_dir = out_dir / "arrays"
+        arrays_dir.mkdir(exist_ok=True)
+        print(f"\nSaving .npy arrays to {arrays_dir}...")
+        for r in results:
+            cid = r["chip_id"]
+            np.save(str(arrays_dir / f"chip_{cid}_mean.npy"), r["mean_prob"])
+            np.save(str(arrays_dir / f"chip_{cid}_var.npy"),  r["variance"])
+        print(f"  Saved {len(results)} chips × 2 arrays")
+
     print(f"\nDone. Results in {out_dir}")
     return results, metrics
 
@@ -583,13 +770,13 @@ def run_uncertainty(args):
 # ─────────────────────────────────────────────────────────────
 
 def parse_args():
-    p = argparse.ArgumentParser(description="MC Dropout Uncertainty Estimation")
+    p = argparse.ArgumentParser(description="MC Dropout / TTA Uncertainty Estimation")
     p.add_argument("--checkpoint",   type=str, required=True,
                    help="Path to best.pt checkpoint")
     p.add_argument("--data_root",    type=str, default="data/sen1floods11")
     p.add_argument("--output_dir",   type=str, default="results/uncertainty")
     p.add_argument("--T",            type=int, default=20,
-                   help="Number of MC Dropout forward passes")
+                   help="Number of MC Dropout forward passes (ignored with --use_tta)")
     p.add_argument("--batch_size",   type=int, default=4)
     p.add_argument("--num_workers",  type=int, default=4)
     p.add_argument("--uncertainty_threshold", type=float, default=0.05,
@@ -598,6 +785,13 @@ def parse_args():
                    help="Number of uncertainty map figures to save")
     p.add_argument("--calibrate",    action="store_true",
                    help="Find optimal temperature T on val set and apply to test predictions")
+    p.add_argument("--use_tta",      action="store_true",
+                   help="Use TTA (8 geometric augmentations) instead of MC Dropout. "
+                        "Useful for Variants A/B/C where dropout_rate=0.")
+    p.add_argument("--analyze_logits", action="store_true",
+                   help="Save logit distribution histogram (diagnostic for extreme T values)")
+    p.add_argument("--save_arrays",  action="store_true",
+                   help="Save mean_prob and variance as .npy arrays per chip")
     return p.parse_args()
 
 

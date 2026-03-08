@@ -1,0 +1,57 @@
+#!/bin/bash
+#SBATCH --job-name=TerrainFlood_Dplus
+#SBATCH --partition=l20-gpu
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=32G
+#SBATCH --time=10:00:00
+#SBATCH --output=logs/train_D_plus_%j.out
+#SBATCH --error=logs/train_D_plus_%j.err
+
+set -euo pipefail
+echo "=== JOB START ==="
+hostname
+date
+echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-}"
+echo "PWD=$(pwd)"
+
+cd /dkucc/home/bd159/terrainflood
+
+module purge
+module load anaconda/2023.7
+module load cuda/12.6
+
+# Try to activate conda env if available
+if command -v conda >/dev/null 2>&1; then
+  source "$(conda info --base)/etc/profile.d/conda.sh"
+  conda activate terrainflood
+fi
+
+mkdir -p logs
+
+# Run audit before training
+echo "=== PIPELINE AUDIT ==="
+python tools/audit_pipeline.py --data_root data/sen1floods11 --skip_val_loop --skip_sampler
+echo "=== AUDIT PASSED — STARTING TRAINING ==="
+
+# Variant D_plus: HAND gate + encoder Dropout2d (rate=0.2) + decoder Dropout2d (rate=0.5)
+# Higher dropout rate causes noisier, slower convergence.
+# If early stopping fires before ~30 epochs, resubmit with --early_stopping_patience 15.
+python -u train.py \
+    --variant D_plus \
+    --data_root data/sen1floods11 \
+    --output_dir checkpoints/variant_D_plus \
+    --epochs 50 \
+    --batch_size 8 \
+    --patch_size 256 \
+    --lr 5e-5 \
+    --weight_decay 1e-4 \
+    --pos_weight 10.0 \
+    --loss_alpha 0.5 \
+    --grad_clip 1.0 \
+    --early_stopping_patience 12 \
+    --num_workers 4 \
+    --seed 42
+
+echo "=== JOB DONE ==="
+date

@@ -93,12 +93,20 @@ class FloodDataset(Dataset):
 
     If hand_chips/ and pop_chips/ do not exist, HAND and population
     are set to zeros (graceful degradation).
+
+    Supported splits:
+      "train"     — 9 events, HandLabeled, 364 chips
+      "val"       — Paraguay only, HandLabeled, 67 chips
+      "test"      — Bolivia only, HandLabeled, 15 chips (OOD holdout)
+      "test_weak" — All events in WeaklyLabeled (noisy labels, Bolivia excluded).
+                    Useful for assessing model generalisation on weakly-supervised data.
+                    Falls back gracefully if WeaklyLabeled directory does not exist.
     """
 
     def __init__(
         self,
         data_root: str,
-        split: str = "train",          # "train" | "val" | "test"
+        split: str = "train",          # "train" | "val" | "test" | "test_weak"
         patch_size: int = 256,         # crop size during training
         augment: bool = True,
         normalize: bool = True,
@@ -146,17 +154,22 @@ class FloodDataset(Dataset):
 
     def _discover_samples(self) -> list[dict]:
         """
-        Finds Sen1Floods11 HandLabeled chips.
+        Finds Sen1Floods11 chips for the requested split.
 
-        Supports BOTH layouts:
-          A) Recommended (what you downloaded):
-             flood_events/HandLabeled/LabelHand/*_LabelHand.tif
-             flood_events/HandLabeled/S1Hand/*_S1Hand.tif
+        HandLabeled splits (train/val/test):
+          Supports BOTH layouts:
+            A) Recommended: flood_events/HandLabeled/LabelHand/*_LabelHand.tif
+               +           flood_events/HandLabeled/S1Hand/*_S1Hand.tif
+            B) Flat:        flood_events/*_LabelHand.tif
 
-          B) Flat legacy layout:
-             flood_events/*_LabelHand.tif
-             flood_events/*_S1Hand.tif
+        WeaklyLabeled split (test_weak):
+          flood_events/WeaklyLabeled/S1Weak/*_S1Weak.tif
+          flood_events/WeaklyLabeled/LabelWeak/*_LabelWeak.tif
+          Bolivia is excluded (OOD holdout). Falls back gracefully if not present.
         """
+        if self.split == "test_weak":
+            return self._discover_weak_samples()
+
         event_dir = self.data_root / "flood_events"
         if not event_dir.exists():
             raise FileNotFoundError(
@@ -206,7 +219,7 @@ class FloodDataset(Dataset):
                 "pop_path":   pop_path  if pop_path.exists()  else None,
             })
 
-        if not samples:
+        if not samples and self.split not in ("test_weak",):
             raise RuntimeError(
                 f"No chips found for split='{self.split}' in:\n"
                 f"  labels: {label_dir}\n"
@@ -216,13 +229,78 @@ class FloodDataset(Dataset):
 
         return samples
 
+    def _discover_weak_samples(self) -> list[dict]:
+        """
+        Finds WeaklyLabeled chips (split='test_weak').
+
+        Bolivia is always excluded even from WeaklyLabeled.
+        Returns an empty list (not an error) if the WeaklyLabeled directory
+        does not exist — allows graceful degradation on setups without weak data.
+        """
+        event_dir = self.data_root / "flood_events"
+        weak_root = event_dir / "WeaklyLabeled"
+
+        if not weak_root.exists():
+            print(
+                f"[FloodDataset] WARNING: WeaklyLabeled directory not found at "
+                f"{weak_root}. split='test_weak' returns 0 chips. "
+                f"Download with: gsutil -m cp -r "
+                f"gs://sen1floods11/v1.1/data/flood_events/WeaklyLabeled {event_dir}/"
+            )
+            return []
+
+        label_dir = weak_root / "LabelWeak"
+        s1_dir    = weak_root / "S1Weak"
+
+        if not label_dir.exists() or not s1_dir.exists():
+            print(
+                f"[FloodDataset] WARNING: LabelWeak/ or S1Weak/ missing in "
+                f"{weak_root}. split='test_weak' returns 0 chips."
+            )
+            return []
+
+        samples: list[dict] = []
+
+        for label_path in sorted(label_dir.glob("*_LabelWeak.tif")):
+            chip_id    = label_path.stem.replace("_LabelWeak", "")
+            event_name = chip_id.split("_")[0]
+
+            # Always exclude Bolivia (OOD holdout — never contaminate test)
+            if event_name == "Bolivia":
+                continue
+
+            s1_path = s1_dir / f"{chip_id}_S1Weak.tif"
+            if not s1_path.exists():
+                continue
+
+            hand_path = self.data_root / "hand_chips" / f"{chip_id}_HAND.tif"
+            pop_path  = self.data_root / "pop_chips"  / f"{chip_id}_pop.tif"
+
+            samples.append({
+                "chip_id":    chip_id,
+                "event":      event_name,
+                "s1_path":    s1_path,
+                "label_path": label_path,
+                "hand_path":  hand_path if hand_path.exists() else None,
+                "pop_path":   pop_path  if pop_path.exists()  else None,
+            })
+
+        print(
+            f"[FloodDataset] split=test_weak: found {len(samples)} WeaklyLabeled chips "
+            f"(Bolivia excluded). Labels are noisy — use for generalisation analysis only."
+        )
+        return samples
+
     # ─── class weight estimation ─────────────
 
     def _compute_class_weights(self) -> dict:
         """
         Quick pass over label files to estimate flood pixel ratio.
         Used for WeightedRandomSampler and loss weighting.
+        Returns safe defaults when samples list is empty (e.g. test_weak fallback).
         """
+        if not self.samples:
+            return {"flood_ratio": 0.05, "pos_weight": 10.0}
         total = 0
         flood = 0
         n = min(50, len(self.samples))

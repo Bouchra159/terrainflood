@@ -229,6 +229,110 @@ def compute_risk_coverage_curve(
 
 
 # ─────────────────────────────────────────────────────────────
+# 1c. Boundary variance analysis
+# ─────────────────────────────────────────────────────────────
+
+def boundary_variance_analysis(
+    results:       list[dict],
+    dilation_px:   int = 5,
+    ignore_value:  int = -1,
+) -> dict:
+    """
+    Tests whether predictive variance is elevated near flood/non-flood boundaries.
+
+    Boundary pixels are where the model faces maximum ambiguity. If uncertainty
+    is well-calibrated, boundary pixels should have higher predictive variance
+    than interior pixels.
+
+    This directly reframes the r=−0.815 (variance–error) finding: the negative
+    correlation reflects sensible spatial uncertainty — boundaries are uncertain
+    AND error-prone. A random oracle would show r ≈ 0.
+
+    Method:
+      1. For each chip, dilate the flood label by `dilation_px` pixels using
+         binary dilation to create a "boundary band" mask.
+      2. Compute mean variance inside vs. outside the boundary band.
+      3. Aggregate across all chips and compute the boundary-to-interior ratio.
+
+    Args:
+        results:     list of dicts from mc_dropout_inference() or tta_inference()
+                     each dict must have keys: variance, label
+        dilation_px: half-width of the boundary band in pixels (default 5)
+        ignore_value: label value to exclude (default -1)
+
+    Returns:
+        dict with keys:
+          mean_var_boundary    : float — mean variance in boundary pixels
+          mean_var_interior    : float — mean variance in interior pixels
+          boundary_ratio       : float — boundary / interior (> 1 = uncertainty concentrated at boundary)
+          n_boundary_pixels    : int
+          n_interior_pixels    : int
+          pearson_r            : float — Pearson r between variance and boundary mask (−1 to +1)
+    """
+    from scipy.ndimage import binary_dilation
+
+    boundary_vars: list[float] = []
+    interior_vars: list[float] = []
+    boundary_mask_all: list[np.ndarray] = []
+    variance_all: list[np.ndarray] = []
+
+    for r in results:
+        var   = r["variance"].astype(np.float32)   # (H, W)
+        label = r["label"]                         # (H, W) int
+
+        valid = label != ignore_value
+        flood = (label == 1) & valid
+
+        # Create boundary band via dilation of flood mask
+        struct = np.ones((dilation_px * 2 + 1, dilation_px * 2 + 1), dtype=bool)
+        flood_dilated    = binary_dilation(flood.astype(bool), structure=struct)
+        no_flood_dilated = binary_dilation((~flood & valid).astype(bool), structure=struct)
+
+        # Boundary = pixels within dilation_px of the flood edge
+        boundary = (flood_dilated & no_flood_dilated) & valid
+        interior = valid & ~boundary
+
+        if boundary.sum() > 0:
+            boundary_vars.append(float(var[boundary].mean()))
+            boundary_mask_all.append(boundary[valid].astype(np.float32))
+            variance_all.append(var[valid])
+
+        if interior.sum() > 0:
+            interior_vars.append(float(var[interior].mean()))
+
+    if not boundary_vars:
+        return {
+            "mean_var_boundary": float("nan"),
+            "mean_var_interior": float("nan"),
+            "boundary_ratio":    float("nan"),
+            "n_boundary_pixels": 0,
+            "n_interior_pixels": 0,
+            "pearson_r":         float("nan"),
+        }
+
+    mean_bv = float(np.mean(boundary_vars))
+    mean_iv = float(np.mean(interior_vars)) if interior_vars else float("nan")
+    ratio   = mean_bv / max(mean_iv, 1e-9)
+
+    # Pearson r between variance and boundary indicator
+    all_var  = np.concatenate(variance_all) if variance_all else np.array([])
+    all_bmsk = np.concatenate(boundary_mask_all) if boundary_mask_all else np.array([])
+    if all_var.size > 1:
+        r_val = float(np.corrcoef(all_var, all_bmsk)[0, 1])
+    else:
+        r_val = float("nan")
+
+    return {
+        "mean_var_boundary": round(mean_bv, 6),
+        "mean_var_interior": round(mean_iv, 6),
+        "boundary_ratio":    round(ratio, 4),
+        "n_boundary_pixels": int(sum(b.sum() for b in boundary_mask_all)),
+        "n_interior_pixels": int(len(interior_vars)),
+        "pearson_r":         round(r_val, 4),
+    }
+
+
+# ─────────────────────────────────────────────────────────────
 # 2.  Evaluate a single checkpoint
 # ─────────────────────────────────────────────────────────────
 
@@ -348,26 +452,34 @@ def build_ablation_table(
     data_root:       str,
     device:          torch.device,
     T:               int = 20,
+    variants:        list | None = None,
 ) -> tuple[dict, list[dict]]:
     """
-    Evaluates all 4 variants (A/B/C/D) and builds a comparison table.
+    Evaluates ablation variants and builds a comparison table.
 
     Expects checkpoint files at:
         checkpoints_dir/variant_A/best.pt
         checkpoints_dir/variant_B/best.pt
-        checkpoints_dir/variant_C/best.pt
-        checkpoints_dir/variant_D/best.pt
+        ...
+        checkpoints_dir/variant_E/best.pt     (if trained)
+        checkpoints_dir/variant_D_plus/best.pt (if trained)
+
+    Args:
+        variants: list of variant names to evaluate. Defaults to ["A","B","C","D"].
+                  Pass ["A","B","C","D","E","D_plus"] for full extended ablation.
 
     Returns:
         (ablation_dict, rows)
         ablation_dict: {variant: overall_metrics}
         rows: list of dicts for CSV export
     """
+    if variants is None:
+        variants = ["A", "B", "C", "D"]
     ablation   = {}
     csv_rows   = []
     ckpt_dir   = Path(checkpoints_dir)
 
-    for variant in ["A", "B", "C", "D"]:
+    for variant in variants:
         ckpt_path = ckpt_dir / f"variant_{variant}" / "best.pt"
         if not ckpt_path.exists():
             print(f"  Variant {variant}: checkpoint not found at {ckpt_path}, skipping.")
@@ -462,10 +574,13 @@ def run_evaluation(args: argparse.Namespace) -> None:
 
     # Coverage-accuracy curve
     _variant_descriptions = {
-        "A": "Variant A (SAR only)",
-        "B": "Variant B (HAND as band)",
-        "C": "Variant C (HAND gate, no UQ)",
-        "D": "Variant D (HAND gate + MC Dropout)",
+        "A":             "Variant A (SAR only)",
+        "B":             "Variant B (HAND as band)",
+        "C":             "Variant C (HAND gate, no UQ)",
+        "D":             "Variant D (HAND gate + MC Dropout)",
+        "E":             "Variant E (change detection + HAND gate + MC Dropout)",
+        "D_plus":        "Variant D+ (encoder + decoder MC Dropout)",
+        "baseline_unet": "Baseline U-Net (SAR only)",
     }
     plot_coverage_accuracy(
         results,
@@ -507,6 +622,15 @@ def run_evaluation(args: argparse.Namespace) -> None:
             out_path   = str(maps_dir / fname),
         )
 
+    # Boundary variance analysis
+    print("\nRunning boundary variance analysis...")
+    bva = boundary_variance_analysis(results)
+    bva_path = out_dir / "boundary_variance.json"
+    bva_path.write_text(json.dumps(bva, indent=2))
+    print(f"  Boundary / Interior variance ratio : {bva['boundary_ratio']:.3f}")
+    print(f"  Pearson r (variance ~ boundary)    : {bva['pearson_r']:.4f}")
+    print(f"  Saved → {bva_path}")
+
     print(f"\nDone. Results in {out_dir}")
 
 
@@ -515,20 +639,28 @@ def run_evaluation(args: argparse.Namespace) -> None:
 # ─────────────────────────────────────────────────────────────
 
 def run_ablation(args: argparse.Namespace) -> None:
-    """Evaluate all 4 variants and produce comparison figures."""
+    """Evaluate ablation variants (A–D by default, E/D_plus if checkpoints exist)."""
     device  = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"\nAblation evaluation — all 4 variants")
+    print(f"\nAblation evaluation")
     print(f"Checkpoints dir : {args.checkpoints_dir}")
     print(f"Output dir      : {out_dir}\n")
+
+    # Auto-detect which extended variants have checkpoints
+    ckpt_base = Path(args.checkpoints_dir)
+    variants_to_eval = ["A", "B", "C", "D"]
+    for ext_v in ["E", "D_plus"]:
+        if (ckpt_base / f"variant_{ext_v}" / "best.pt").exists():
+            variants_to_eval.append(ext_v)
 
     ablation, csv_rows = build_ablation_table(
         checkpoints_dir = args.checkpoints_dir,
         data_root       = args.data_root,
         device          = device,
         T               = args.T,
+        variants        = variants_to_eval,
     )
 
     if not ablation:
@@ -556,12 +688,12 @@ def run_ablation(args: argparse.Namespace) -> None:
     )
 
     # Print table
-    print(f"\n{'Variant':<10} {'IoU':>8} {'F1':>8} {'ECE':>8} {'Brier':>8}")
-    print("-" * 46)
-    for v in ["A", "B", "C", "D"]:
+    print(f"\n{'Variant':<12} {'IoU':>8} {'F1':>8} {'ECE':>8} {'Brier':>8}")
+    print("-" * 50)
+    for v in ["A", "B", "C", "D", "E", "D_plus", "baseline_unet"]:
         if v in ablation:
             m = ablation[v]
-            print(f"  {v:<8} {m['iou']:>8.4f} {m['f1']:>8.4f} "
+            print(f"  {v:<10} {m['iou']:>8.4f} {m['f1']:>8.4f} "
                   f"{m['ece']:>8.4f} {m['brier']:>8.4f}")
 
     print(f"\nDone. Results in {out_dir}")
@@ -590,9 +722,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--data_root",    type=str, default="data/sen1floods11")
     p.add_argument("--output_dir",   type=str, default="results/eval")
     p.add_argument("--split",        type=str, default="test",
-                   choices=["test", "val"],
+                   choices=["test", "val", "test_weak"],
                    help="Evaluation split: test=Bolivia OOD (15 chips), "
-                        "val=Paraguay (67 chips)")
+                        "val=Paraguay (67 chips), "
+                        "test_weak=WeaklyLabeled generalisation set")
     p.add_argument("--T",            type=int, default=20,
                    help="MC Dropout forward passes (use --T 1 for A/B/C)")
     p.add_argument("--batch_size",   type=int, default=4)
