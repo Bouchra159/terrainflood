@@ -1,0 +1,8 @@
+{
+  "mean_var_boundary": 0.0,
+  "mean_var_interior": 0.0,
+  "boundary_ratio": 0.0,
+  "n_boundary_pixels": 467370,
+  "n_interior_pixels": 15,
+  "pearson_r": NaN
+}

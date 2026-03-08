@@ -1,0 +1,13 @@
+{
+  "ablation": false,
+  "checkpoint": "checkpoints/variant_A/best.pt",
+  "checkpoints_dir": "checkpoints",
+  "data_root": "data/sen1floods11",
+  "output_dir": "results/eval_A",
+  "split": "test",
+  "T": 20,
+  "batch_size": 4,
+  "num_workers": 4,
+  "uncertainty_threshold": 0.05,
+  "n_maps": 15
+}

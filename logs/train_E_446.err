@@ -1,0 +1,9 @@
+usage: train.py [-h] [--variant {A,B,C,D}] [--data_root DATA_ROOT]
+                [--output_dir OUTPUT_DIR] [--epochs EPOCHS]
+                [--batch_size BATCH_SIZE] [--patch_size PATCH_SIZE] [--lr LR]
+                [--weight_decay WEIGHT_DECAY] [--loss_alpha LOSS_ALPHA]
+                [--pos_weight POS_WEIGHT] [--grad_clip GRAD_CLIP]
+                [--early_stopping_patience EARLY_STOPPING_PATIENCE]
+                [--num_workers NUM_WORKERS] [--pretrained] [--no_pretrained]
+                [--resume RESUME] [--seed SEED] [--fast_dev_run]
+train.py: error: argument --variant: invalid choice: 'E' (choose from 'A', 'B', 'C', 'D')

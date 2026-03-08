@@ -1,0 +1,44 @@
+{
+  "A": {
+    "tau_star": 0.8,
+    "iou_at_tau": 0.5695,
+    "f1_at_tau": 0.7257,
+    "iou_at_0.5": 0.4082
+  },
+  "B": {
+    "tau_star": 0.77,
+    "iou_at_tau": 0.5235,
+    "f1_at_tau": 0.6873,
+    "iou_at_0.5": 0.4411
+  },
+  "C": {
+    "tau_star": 0.51,
+    "iou_at_tau": 0.6668,
+    "f1_at_tau": 0.8001,
+    "iou_at_0.5": 0.6623
+  },
+  "D": {
+    "tau_star": 0.5,
+    "iou_at_tau": 0.686,
+    "f1_at_tau": 0.8138,
+    "iou_at_0.5": 0.686
+  },
+  "E": {
+    "tau_star": 0.64,
+    "iou_at_tau": 0.1988,
+    "f1_at_tau": 0.3316,
+    "iou_at_0.5": 0.1675
+  },
+  "D_plus": {
+    "tau_star": 0.52,
+    "iou_at_tau": 0.6823,
+    "f1_at_tau": 0.8112,
+    "iou_at_0.5": 0.6481
+  },
+  "baseline_unet": {
+    "tau_star": 0.8,
+    "iou_at_tau": 0.5695,
+    "f1_at_tau": 0.7257,
+    "iou_at_0.5": 0.4082
+  }
+}

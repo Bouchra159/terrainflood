@@ -4,6 +4,7 @@
   "checkpoints_dir": "checkpoints",
   "data_root": "data/sen1floods11",
   "output_dir": "results/eval_D",
+  "split": "test",
   "T": 20,
   "batch_size": 4,
   "num_workers": 4,

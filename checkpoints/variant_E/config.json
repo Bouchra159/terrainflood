@@ -1,0 +1,16 @@
+{
+  "variant": "E",
+  "lr": 0.0001,
+  "weight_decay": 0.0001,
+  "epochs": 50,
+  "batch_size": 8,
+  "patch_size": 256,
+  "loss_type": "bce_dice",
+  "loss_alpha": 0.5,
+  "pos_weight": 10.0,
+  "grad_clip": 1.0,
+  "early_stopping_patience": 10,
+  "seed": 42,
+  "data_root": "data/sen1floods11",
+  "permanent_water": "include"
+}

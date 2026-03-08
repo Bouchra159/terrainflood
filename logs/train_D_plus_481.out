@@ -1,0 +1,395 @@
+=== JOB START ===
+dkucc-core-gpu-dkurc-a-it08-22.rc.duke.edu
+Sun Mar  8 04:51:41 AM EDT 2026
+CUDA_VISIBLE_DEVICES=0
+PWD=/dkucc/home/bd159/terrainflood
+=== PIPELINE AUDIT ===
+============================================================
+  TerrainFlood-UQ  —  Pipeline Audit
+  data_root = data/sen1floods11
+============================================================
+
+────────────────────────────────────────────────────────────
+  A. Dataset Discovery
+────────────────────────────────────────────────────────────
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+  [[32mPASS[0m] train   364 chips
+         OK  event=Ghana            chip=Ghana_103272
+         OK  event=Ghana            chip=Ghana_1033830
+         OK  event=Ghana            chip=Ghana_1078550
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+  [[32mPASS[0m] val      67 chips
+         OK  event=Paraguay         chip=Paraguay_1019808
+         OK  event=Paraguay         chip=Paraguay_1029042
+         OK  event=Paraguay         chip=Paraguay_1029191
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+  [[32mPASS[0m] test     15 chips
+         OK  event=Bolivia          chip=Bolivia_103757
+         OK  event=Bolivia          chip=Bolivia_129334
+         OK  event=Bolivia          chip=Bolivia_195474
+  [[32mPASS[0m] Total chips: 446
+
+────────────────────────────────────────────────────────────
+  B. Split Mapping
+────────────────────────────────────────────────────────────
+
+  Events in dataset: {'USA': 69, 'India': 68, 'Paraguay': 67, 'Ghana': 53, 'Sri-Lanka': 42, 'Spain': 30, 'Mekong': 30, 'Pakistan': 28, 'Somalia': 26, 'Nigeria': 18, 'Bolivia': 15}
+  Events in SPLIT_MAP: ['Bolivia', 'Cambodia', 'Canada', 'DemRepCongo', 'Ecuador', 'Ghana', 'India', 'Mekong', 'Nigeria', 'Pakistan', 'Paraguay', 'Somalia', 'Spain', 'Sri-Lanka', 'USA']
+
+  [[32mPASS[0m] All disk events are in SPLIT_MAP
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+  [[32mPASS[0m] train ∩ val = ∅  (no leakage)
+  [[32mPASS[0m] train ∩ test = ∅  (no leakage)
+  [[32mPASS[0m] val ∩ test = ∅  (no leakage)
+  [[32mPASS[0m] Bolivia NOT in train
+  [[32mPASS[0m] Bolivia NOT in val
+  [[32mPASS[0m] Bolivia in test: 15 chips
+
+  train (364 chips): {'USA': 69, 'India': 68, 'Ghana': 53, 'Sri-Lanka': 42, 'Mekong': 30, 'Spain': 30, 'Pakistan': 28, 'Somalia': 26, 'Nigeria': 18}
+
+  val (67 chips): {'Paraguay': 67}
+
+  test (15 chips): {'Bolivia': 15}
+
+────────────────────────────────────────────────────────────
+  C. Label Distribution
+────────────────────────────────────────────────────────────
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+
+  Sample: 100 chips from train split
+  Total valid pixels    : 19,478,962
+  Flood pixels (label=1): 1,779,125  (9.13%)
+  Ignore pixels (=-1)   : 6,735,438  (25.69%)
+  Perm. water (label=2) : 0
+  Chips with any flood  : 72/100
+  [[32mPASS[0m] Flood pixel ratio = 0.0913  (72/100 chips contain flood)
+  [[32mPASS[0m] Ignore pixel ratio = 0.2569  (reasonable)
+
+  Checking unique label values (first 100 chips)...
+  [[32mPASS[0m] Label values present: [-1, 0, 1]
+
+────────────────────────────────────────────────────────────
+  D. IoU Function Unit Tests
+────────────────────────────────────────────────────────────
+  [[32mPASS[0m] Perfect prediction IoU = 1.0000  (expected 1.0)
+  [[32mPASS[0m] All-zero prediction IoU = 0.0000  (expected 0.0)
+  [[32mPASS[0m] Ignore mask IoU = 0.5000  (expected 0.5000)
+  [[32mPASS[0m] All-ignore labels IoU = 0.0000  (no crash, returns 0)
+
+  [Skipped] E. Validation loop (--skip_val_loop)
+
+  [Skipped] F. Sampler check (--skip_sampler)
+
+============================================================
+  AUDIT PASSED  —  all checks OK
+============================================================
+=== AUDIT PASSED — STARTING TRAINING ===
+
+============================================================
+  TerrainFlood-UQ  |  Variant D_plus  |  cuda
+============================================================
+  Output  : checkpoints/variant_D_plus
+  Data    : data/sen1floods11
+{
+  "variant": "D_plus",
+  "lr": 5e-05,
+  "weight_decay": 0.0001,
+  "epochs": 50,
+  "batch_size": 8,
+  "patch_size": 256,
+  "loss_type": "bce_dice",
+  "loss_alpha": 0.5,
+  "pos_weight": 10.0,
+  "grad_clip": 1.0,
+  "early_stopping_patience": 12,
+  "seed": 42,
+  "data_root": "data/sen1floods11",
+  "permanent_water": "include"
+}
+============================================================
+
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (8 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+Built Variant D_plus: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+TensorBoard: tensorboard --logdir checkpoints/variant_D_plus/runs
+
+
+[Epoch 001/050]
+  Train  loss=1.8749  iou=0.1229
+  Val    loss=1.0649    iou=0.0978
+  LR     5.00e-05
+  ✓ New best IoU: 0.0978
+
+[Epoch 002/050]
+  Train  loss=1.6743  iou=0.3054
+  Val    loss=1.0443    iou=0.2590
+  LR     5.00e-05
+  ✓ New best IoU: 0.2590
+
+[Epoch 003/050]
+  Train  loss=1.7692  iou=0.3863
+  Val    loss=1.0328    iou=0.2624
+  LR     4.98e-05
+  ✓ New best IoU: 0.2624
+
+[Epoch 004/050]
+  Train  loss=1.6888  iou=0.5025
+  Val    loss=1.0228    iou=0.2705
+  LR     4.96e-05
+  ✓ New best IoU: 0.2705
+
+[Epoch 005/050]
+  Train  loss=1.6405  iou=0.5561
+  Val    loss=1.0144    iou=0.2858
+  LR     4.92e-05
+  ✓ New best IoU: 0.2858
+
+[Epoch 006/050]
+  Train  loss=1.5189  iou=0.6016
+  Val    loss=0.9984    iou=0.3174
+  LR     4.88e-05
+  ✓ New best IoU: 0.3174
+
+[Epoch 007/050]
+  Train  loss=1.5811  iou=0.6278
+  Val    loss=0.9968    iou=0.3213
+  LR     4.83e-05
+  ✓ New best IoU: 0.3213
+
+[Epoch 008/050]
+  Train  loss=1.6063  iou=0.6573
+  Val    loss=0.9887    iou=0.2918
+  LR     4.77e-05
+
+[Epoch 009/050]
+  Train  loss=1.4955  iou=0.6583
+  Val    loss=0.9837    iou=0.3210
+  LR     4.70e-05
+
+[Epoch 010/050]
+  Train  loss=1.3985  iou=0.6416
+  Val    loss=0.9661    iou=0.3256
+  LR     4.62e-05
+  ✓ New best IoU: 0.3256
+
+[Epoch 011/050]
+  Train  loss=1.4397  iou=0.6481
+  Val    loss=0.9591    iou=0.3325
+  LR     4.53e-05
+  ✓ New best IoU: 0.3325
+
+[Epoch 012/050]
+  Train  loss=1.3234  iou=0.6359
+  Val    loss=0.9483    iou=0.3178
+  LR     4.44e-05
+
+[Epoch 013/050]
+  Train  loss=1.3202  iou=0.6702
+  Val    loss=0.9354    iou=0.3229
+  LR     4.34e-05
+
+[Epoch 014/050]
+  Train  loss=1.3014  iou=0.6243
+  Val    loss=0.9210    iou=0.3180
+  LR     4.23e-05
+
+[Epoch 015/050]
+  Train  loss=1.2784  iou=0.6435
+  Val    loss=0.9062    iou=0.2985
+  LR     4.11e-05
+
+[Epoch 016/050]
+  Train  loss=1.1955  iou=0.6147
+  Val    loss=0.9105    iou=0.3209
+  LR     3.99e-05
+
+[Epoch 017/050]
+  Train  loss=1.2088  iou=0.6732
+  Val    loss=0.8942    iou=0.3306
+  LR     3.86e-05
+
+[Epoch 018/050]
+  Train  loss=1.1968  iou=0.6175
+  Val    loss=0.8786    iou=0.3312
+  LR     3.73e-05
+
+[Epoch 019/050]
+  Train  loss=1.1074  iou=0.6585
+  Val    loss=0.8805    iou=0.3282
+  LR     3.59e-05
+
+[Epoch 020/050]
+  Train  loss=1.0635  iou=0.6355
+  Val    loss=0.8689    iou=0.3376
+  LR     3.45e-05
+  ✓ New best IoU: 0.3376
+
+[Epoch 021/050]
+  Train  loss=1.0396  iou=0.6060
+  Val    loss=0.8676    iou=0.3342
+  LR     3.31e-05
+
+[Epoch 022/050]
+  Train  loss=1.0668  iou=0.6208
+  Val    loss=0.8560    iou=0.2974
+  LR     3.16e-05
+
+[Epoch 023/050]
+  Train  loss=1.0844  iou=0.6360
+  Val    loss=0.8460    iou=0.3113
+  LR     3.01e-05
+
+[Epoch 024/050]
+  Train  loss=1.0255  iou=0.6239
+  Val    loss=0.8412    iou=0.3384
+  LR     2.86e-05
+  ✓ New best IoU: 0.3384
+
+[Epoch 025/050]
+  Train  loss=1.0508  iou=0.6682
+  Val    loss=0.8341    iou=0.3157
+  LR     2.70e-05
+
+[Epoch 026/050]
+  Train  loss=1.0343  iou=0.6408
+  Val    loss=0.8303    iou=0.3338
+  LR     2.55e-05
+
+[Epoch 027/050]
+  Train  loss=1.0170  iou=0.7122
+  Val    loss=0.8236    iou=0.3342
+  LR     2.40e-05
+
+[Epoch 028/050]
+  Train  loss=1.0140  iou=0.6350
+  Val    loss=0.8199    iou=0.3179
+  LR     2.24e-05
+
+[Epoch 029/050]
+  Train  loss=0.9479  iou=0.6087
+  Val    loss=0.8181    iou=0.3205
+  LR     2.09e-05
+
+[Epoch 030/050]
+  Train  loss=0.9744  iou=0.6223
+  Val    loss=0.8056    iou=0.3272
+  LR     1.94e-05
+
+[Epoch 031/050]
+  Train  loss=0.9382  iou=0.6081
+  Val    loss=0.8182    iou=0.3297
+  LR     1.79e-05
+
+[Epoch 032/050]
+  Train  loss=0.9284  iou=0.6514
+  Val    loss=0.8169    iou=0.3194
+  LR     1.65e-05
+
+[Epoch 033/050]
+  Train  loss=0.9049  iou=0.6154
+  Val    loss=0.8146    iou=0.3155
+  LR     1.51e-05
+
+[Epoch 034/050]
+  Train  loss=0.9417  iou=0.6359
+  Val    loss=0.8234    iou=0.3122
+  LR     1.37e-05
+
+[Epoch 035/050]
+  Train  loss=0.8475  iou=0.6184
+  Val    loss=0.8291    iou=0.2239
+  LR     1.24e-05
+
+[Epoch 036/050]
+  Train  loss=0.9584  iou=0.6958
+  Val    loss=0.8102    iou=0.3511
+  LR     1.11e-05
+  ✓ New best IoU: 0.3511
+
+[Epoch 037/050]
+  Train  loss=0.8788  iou=0.6291
+  Val    loss=0.7986    iou=0.3212
+  LR     9.88e-06
+
+[Epoch 038/050]
+  Train  loss=0.8960  iou=0.6511
+  Val    loss=0.7869    iou=0.3009
+  LR     8.73e-06
+
+[Epoch 039/050]
+  Train  loss=0.9241  iou=0.6288
+  Val    loss=0.7914    iou=0.3394
+  LR     7.64e-06
+
+[Epoch 040/050]
+  Train  loss=0.9020  iou=0.6065
+  Val    loss=0.7946    iou=0.3216
+  LR     6.62e-06
+
+[Epoch 041/050]
+  Train  loss=0.8537  iou=0.6037
+  Val    loss=0.7889    iou=0.3107
+  LR     5.68e-06
+
+[Epoch 042/050]
+  Train  loss=0.8784  iou=0.5647
+  Val    loss=0.7771    iou=0.3129
+  LR     4.81e-06
+
+[Epoch 043/050]
+  Train  loss=0.8738  iou=0.6326
+  Val    loss=0.7952    iou=0.3361
+  LR     4.03e-06
+
+[Epoch 044/050]
+  Train  loss=0.8018  iou=0.6106
+  Val    loss=0.7738    iou=0.2911
+  LR     3.33e-06
+
+[Epoch 045/050]
+  Train  loss=0.9194  iou=0.6126
+  Val    loss=0.7953    iou=0.3336
+  LR     2.72e-06
+
+[Epoch 046/050]
+  Train  loss=0.8119  iou=0.6249
+  Val    loss=0.7910    iou=0.3037
+  LR     2.20e-06
+
+[Epoch 047/050]
+  Train  loss=0.8480  iou=0.5663
+  Val    loss=0.7821    iou=0.3148
+  LR     1.77e-06
+
+[Epoch 048/050]
+  Train  loss=0.8788  iou=0.6115
+  Val    loss=0.8011    iou=0.3335
+  LR     1.43e-06
+
+Early stopping (patience=12)
+
+============================================================
+  Done. Best val IoU: 0.3511
+  Checkpoints: checkpoints/variant_D_plus
+============================================================
+
+=== JOB DONE ===
+Sun Mar  8 04:59:30 AM EDT 2026

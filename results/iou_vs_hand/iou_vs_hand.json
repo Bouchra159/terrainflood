@@ -1,0 +1,692 @@
+{
+  "summary": {
+    "A": {
+      "n_chips": 15,
+      "pearson_r": -0.2183,
+      "mean_iou": 0.2972,
+      "mean_hand_m": 1.9
+    },
+    "B": {
+      "n_chips": 15,
+      "pearson_r": -0.122,
+      "mean_iou": 0.3366,
+      "mean_hand_m": 1.9
+    },
+    "C": {
+      "n_chips": 15,
+      "pearson_r": -0.2046,
+      "mean_iou": 0.4151,
+      "mean_hand_m": 1.9
+    },
+    "D": {
+      "n_chips": 15,
+      "pearson_r": -0.1584,
+      "mean_iou": 0.4339,
+      "mean_hand_m": 1.9
+    },
+    "E": {
+      "n_chips": 15,
+      "pearson_r": -0.0578,
+      "mean_iou": 0.1736,
+      "mean_hand_m": 1.9
+    },
+    "D_plus": {
+      "n_chips": 15,
+      "pearson_r": -0.1845,
+      "mean_iou": 0.4142,
+      "mean_hand_m": 1.9
+    },
+    "baseline_unet": {
+      "n_chips": 15,
+      "pearson_r": -0.2183,
+      "mean_iou": 0.2972,
+      "mean_hand_m": 1.9
+    }
+  },
+  "per_chip": {
+    "A": [
+      {
+        "chip_id": "Bolivia_103757",
+        "event": "Bolivia",
+        "iou": 0.4678,
+        "mean_hand_m": 2.8
+      },
+      {
+        "chip_id": "Bolivia_129334",
+        "event": "Bolivia",
+        "iou": 0.8306,
+        "mean_hand_m": 1.03
+      },
+      {
+        "chip_id": "Bolivia_195474",
+        "event": "Bolivia",
+        "iou": 0.0267,
+        "mean_hand_m": 3.04
+      },
+      {
+        "chip_id": "Bolivia_23014",
+        "event": "Bolivia",
+        "iou": 0.196,
+        "mean_hand_m": 1.65
+      },
+      {
+        "chip_id": "Bolivia_233925",
+        "event": "Bolivia",
+        "iou": 0.0,
+        "mean_hand_m": 2.78
+      },
+      {
+        "chip_id": "Bolivia_242570",
+        "event": "Bolivia",
+        "iou": 0.1742,
+        "mean_hand_m": 1.06
+      },
+      {
+        "chip_id": "Bolivia_290290",
+        "event": "Bolivia",
+        "iou": 0.4229,
+        "mean_hand_m": 1.63
+      },
+      {
+        "chip_id": "Bolivia_294583",
+        "event": "Bolivia",
+        "iou": 0.4453,
+        "mean_hand_m": 2.75
+      },
+      {
+        "chip_id": "Bolivia_312675",
+        "event": "Bolivia",
+        "iou": 0.1877,
+        "mean_hand_m": 2.76
+      },
+      {
+        "chip_id": "Bolivia_314919",
+        "event": "Bolivia",
+        "iou": 0.5295,
+        "mean_hand_m": 2.41
+      },
+      {
+        "chip_id": "Bolivia_360519",
+        "event": "Bolivia",
+        "iou": 0.1773,
+        "mean_hand_m": 1.26
+      },
+      {
+        "chip_id": "Bolivia_379434",
+        "event": "Bolivia",
+        "iou": 0.0673,
+        "mean_hand_m": 1.04
+      },
+      {
+        "chip_id": "Bolivia_432776",
+        "event": "Bolivia",
+        "iou": 0.5233,
+        "mean_hand_m": 1.92
+      },
+      {
+        "chip_id": "Bolivia_60373",
+        "event": "Bolivia",
+        "iou": 0.4094,
+        "mean_hand_m": 0.41
+      },
+      {
+        "chip_id": "Bolivia_76104",
+        "event": "Bolivia",
+        "iou": 0.0,
+        "mean_hand_m": 2.21
+      }
+    ],
+    "B": [
+      {
+        "chip_id": "Bolivia_103757",
+        "event": "Bolivia",
+        "iou": 0.677,
+        "mean_hand_m": 2.8
+      },
+      {
+        "chip_id": "Bolivia_129334",
+        "event": "Bolivia",
+        "iou": 0.8517,
+        "mean_hand_m": 1.03
+      },
+      {
+        "chip_id": "Bolivia_195474",
+        "event": "Bolivia",
+        "iou": 0.0508,
+        "mean_hand_m": 3.04
+      },
+      {
+        "chip_id": "Bolivia_23014",
+        "event": "Bolivia",
+        "iou": 0.1968,
+        "mean_hand_m": 1.65
+      },
+      {
+        "chip_id": "Bolivia_233925",
+        "event": "Bolivia",
+        "iou": 0.0,
+        "mean_hand_m": 2.78
+      },
+      {
+        "chip_id": "Bolivia_242570",
+        "event": "Bolivia",
+        "iou": 0.3261,
+        "mean_hand_m": 1.06
+      },
+      {
+        "chip_id": "Bolivia_290290",
+        "event": "Bolivia",
+        "iou": 0.475,
+        "mean_hand_m": 1.63
+      },
+      {
+        "chip_id": "Bolivia_294583",
+        "event": "Bolivia",
+        "iou": 0.4434,
+        "mean_hand_m": 2.75
+      },
+      {
+        "chip_id": "Bolivia_312675",
+        "event": "Bolivia",
+        "iou": 0.1691,
+        "mean_hand_m": 2.76
+      },
+      {
+        "chip_id": "Bolivia_314919",
+        "event": "Bolivia",
+        "iou": 0.7216,
+        "mean_hand_m": 2.41
+      },
+      {
+        "chip_id": "Bolivia_360519",
+        "event": "Bolivia",
+        "iou": 0.1838,
+        "mean_hand_m": 1.26
+      },
+      {
+        "chip_id": "Bolivia_379434",
+        "event": "Bolivia",
+        "iou": 0.0497,
+        "mean_hand_m": 1.04
+      },
+      {
+        "chip_id": "Bolivia_432776",
+        "event": "Bolivia",
+        "iou": 0.5527,
+        "mean_hand_m": 1.92
+      },
+      {
+        "chip_id": "Bolivia_60373",
+        "event": "Bolivia",
+        "iou": 0.3515,
+        "mean_hand_m": 0.41
+      },
+      {
+        "chip_id": "Bolivia_76104",
+        "event": "Bolivia",
+        "iou": 0.0,
+        "mean_hand_m": 2.21
+      }
+    ],
+    "C": [
+      {
+        "chip_id": "Bolivia_103757",
+        "event": "Bolivia",
+        "iou": 0.756,
+        "mean_hand_m": 2.8
+      },
+      {
+        "chip_id": "Bolivia_129334",
+        "event": "Bolivia",
+        "iou": 0.8794,
+        "mean_hand_m": 1.03
+      },
+      {
+        "chip_id": "Bolivia_195474",
+        "event": "Bolivia",
+        "iou": 0.005,
+        "mean_hand_m": 3.04
+      },
+      {
+        "chip_id": "Bolivia_23014",
+        "event": "Bolivia",
+        "iou": 0.5643,
+        "mean_hand_m": 1.65
+      },
+      {
+        "chip_id": "Bolivia_233925",
+        "event": "Bolivia",
+        "iou": 0.0,
+        "mean_hand_m": 2.78
+      },
+      {
+        "chip_id": "Bolivia_242570",
+        "event": "Bolivia",
+        "iou": 0.2776,
+        "mean_hand_m": 1.06
+      },
+      {
+        "chip_id": "Bolivia_290290",
+        "event": "Bolivia",
+        "iou": 0.5424,
+        "mean_hand_m": 1.63
+      },
+      {
+        "chip_id": "Bolivia_294583",
+        "event": "Bolivia",
+        "iou": 0.6509,
+        "mean_hand_m": 2.75
+      },
+      {
+        "chip_id": "Bolivia_312675",
+        "event": "Bolivia",
+        "iou": 0.2854,
+        "mean_hand_m": 2.76
+      },
+      {
+        "chip_id": "Bolivia_314919",
+        "event": "Bolivia",
+        "iou": 0.7139,
+        "mean_hand_m": 2.41
+      },
+      {
+        "chip_id": "Bolivia_360519",
+        "event": "Bolivia",
+        "iou": 0.0472,
+        "mean_hand_m": 1.26
+      },
+      {
+        "chip_id": "Bolivia_379434",
+        "event": "Bolivia",
+        "iou": 0.2289,
+        "mean_hand_m": 1.04
+      },
+      {
+        "chip_id": "Bolivia_432776",
+        "event": "Bolivia",
+        "iou": 0.6185,
+        "mean_hand_m": 1.92
+      },
+      {
+        "chip_id": "Bolivia_60373",
+        "event": "Bolivia",
+        "iou": 0.6573,
+        "mean_hand_m": 0.41
+      },
+      {
+        "chip_id": "Bolivia_76104",
+        "event": "Bolivia",
+        "iou": 0.0,
+        "mean_hand_m": 2.21
+      }
+    ],
+    "D": [
+      {
+        "chip_id": "Bolivia_103757",
+        "event": "Bolivia",
+        "iou": 0.7819,
+        "mean_hand_m": 2.8
+      },
+      {
+        "chip_id": "Bolivia_129334",
+        "event": "Bolivia",
+        "iou": 0.849,
+        "mean_hand_m": 1.03
+      },
+      {
+        "chip_id": "Bolivia_195474",
+        "event": "Bolivia",
+        "iou": 0.001,
+        "mean_hand_m": 3.04
+      },
+      {
+        "chip_id": "Bolivia_23014",
+        "event": "Bolivia",
+        "iou": 0.7684,
+        "mean_hand_m": 1.65
+      },
+      {
+        "chip_id": "Bolivia_233925",
+        "event": "Bolivia",
+        "iou": 0.0,
+        "mean_hand_m": 2.78
+      },
+      {
+        "chip_id": "Bolivia_242570",
+        "event": "Bolivia",
+        "iou": 0.3124,
+        "mean_hand_m": 1.06
+      },
+      {
+        "chip_id": "Bolivia_290290",
+        "event": "Bolivia",
+        "iou": 0.5257,
+        "mean_hand_m": 1.63
+      },
+      {
+        "chip_id": "Bolivia_294583",
+        "event": "Bolivia",
+        "iou": 0.6939,
+        "mean_hand_m": 2.75
+      },
+      {
+        "chip_id": "Bolivia_312675",
+        "event": "Bolivia",
+        "iou": 0.253,
+        "mean_hand_m": 2.76
+      },
+      {
+        "chip_id": "Bolivia_314919",
+        "event": "Bolivia",
+        "iou": 0.7686,
+        "mean_hand_m": 2.41
+      },
+      {
+        "chip_id": "Bolivia_360519",
+        "event": "Bolivia",
+        "iou": 0.0257,
+        "mean_hand_m": 1.26
+      },
+      {
+        "chip_id": "Bolivia_379434",
+        "event": "Bolivia",
+        "iou": 0.1971,
+        "mean_hand_m": 1.04
+      },
+      {
+        "chip_id": "Bolivia_432776",
+        "event": "Bolivia",
+        "iou": 0.7279,
+        "mean_hand_m": 1.92
+      },
+      {
+        "chip_id": "Bolivia_60373",
+        "event": "Bolivia",
+        "iou": 0.6046,
+        "mean_hand_m": 0.41
+      },
+      {
+        "chip_id": "Bolivia_76104",
+        "event": "Bolivia",
+        "iou": 0.0,
+        "mean_hand_m": 2.21
+      }
+    ],
+    "E": [
+      {
+        "chip_id": "Bolivia_103757",
+        "event": "Bolivia",
+        "iou": 0.4015,
+        "mean_hand_m": 2.8
+      },
+      {
+        "chip_id": "Bolivia_129334",
+        "event": "Bolivia",
+        "iou": 0.6688,
+        "mean_hand_m": 1.03
+      },
+      {
+        "chip_id": "Bolivia_195474",
+        "event": "Bolivia",
+        "iou": 0.007,
+        "mean_hand_m": 3.04
+      },
+      {
+        "chip_id": "Bolivia_23014",
+        "event": "Bolivia",
+        "iou": 0.0381,
+        "mean_hand_m": 1.65
+      },
+      {
+        "chip_id": "Bolivia_233925",
+        "event": "Bolivia",
+        "iou": 0.0,
+        "mean_hand_m": 2.78
+      },
+      {
+        "chip_id": "Bolivia_242570",
+        "event": "Bolivia",
+        "iou": 0.1558,
+        "mean_hand_m": 1.06
+      },
+      {
+        "chip_id": "Bolivia_290290",
+        "event": "Bolivia",
+        "iou": 0.0963,
+        "mean_hand_m": 1.63
+      },
+      {
+        "chip_id": "Bolivia_294583",
+        "event": "Bolivia",
+        "iou": 0.132,
+        "mean_hand_m": 2.75
+      },
+      {
+        "chip_id": "Bolivia_312675",
+        "event": "Bolivia",
+        "iou": 0.0761,
+        "mean_hand_m": 2.76
+      },
+      {
+        "chip_id": "Bolivia_314919",
+        "event": "Bolivia",
+        "iou": 0.4434,
+        "mean_hand_m": 2.41
+      },
+      {
+        "chip_id": "Bolivia_360519",
+        "event": "Bolivia",
+        "iou": 0.0115,
+        "mean_hand_m": 1.26
+      },
+      {
+        "chip_id": "Bolivia_379434",
+        "event": "Bolivia",
+        "iou": 0.0391,
+        "mean_hand_m": 1.04
+      },
+      {
+        "chip_id": "Bolivia_432776",
+        "event": "Bolivia",
+        "iou": 0.471,
+        "mean_hand_m": 1.92
+      },
+      {
+        "chip_id": "Bolivia_60373",
+        "event": "Bolivia",
+        "iou": 0.0627,
+        "mean_hand_m": 0.41
+      },
+      {
+        "chip_id": "Bolivia_76104",
+        "event": "Bolivia",
+        "iou": 0.0,
+        "mean_hand_m": 2.21
+      }
+    ],
+    "D_plus": [
+      {
+        "chip_id": "Bolivia_103757",
+        "event": "Bolivia",
+        "iou": 0.7737,
+        "mean_hand_m": 2.8
+      },
+      {
+        "chip_id": "Bolivia_129334",
+        "event": "Bolivia",
+        "iou": 0.8341,
+        "mean_hand_m": 1.03
+      },
+      {
+        "chip_id": "Bolivia_195474",
+        "event": "Bolivia",
+        "iou": 0.0,
+        "mean_hand_m": 3.04
+      },
+      {
+        "chip_id": "Bolivia_23014",
+        "event": "Bolivia",
+        "iou": 0.3583,
+        "mean_hand_m": 1.65
+      },
+      {
+        "chip_id": "Bolivia_233925",
+        "event": "Bolivia",
+        "iou": 0.0,
+        "mean_hand_m": 2.78
+      },
+      {
+        "chip_id": "Bolivia_242570",
+        "event": "Bolivia",
+        "iou": 0.3229,
+        "mean_hand_m": 1.06
+      },
+      {
+        "chip_id": "Bolivia_290290",
+        "event": "Bolivia",
+        "iou": 0.5811,
+        "mean_hand_m": 1.63
+      },
+      {
+        "chip_id": "Bolivia_294583",
+        "event": "Bolivia",
+        "iou": 0.6058,
+        "mean_hand_m": 2.75
+      },
+      {
+        "chip_id": "Bolivia_312675",
+        "event": "Bolivia",
+        "iou": 0.3695,
+        "mean_hand_m": 2.76
+      },
+      {
+        "chip_id": "Bolivia_314919",
+        "event": "Bolivia",
+        "iou": 0.7465,
+        "mean_hand_m": 2.41
+      },
+      {
+        "chip_id": "Bolivia_360519",
+        "event": "Bolivia",
+        "iou": 0.037,
+        "mean_hand_m": 1.26
+      },
+      {
+        "chip_id": "Bolivia_379434",
+        "event": "Bolivia",
+        "iou": 0.2786,
+        "mean_hand_m": 1.04
+      },
+      {
+        "chip_id": "Bolivia_432776",
+        "event": "Bolivia",
+        "iou": 0.6596,
+        "mean_hand_m": 1.92
+      },
+      {
+        "chip_id": "Bolivia_60373",
+        "event": "Bolivia",
+        "iou": 0.646,
+        "mean_hand_m": 0.41
+      },
+      {
+        "chip_id": "Bolivia_76104",
+        "event": "Bolivia",
+        "iou": 0.0,
+        "mean_hand_m": 2.21
+      }
+    ],
+    "baseline_unet": [
+      {
+        "chip_id": "Bolivia_103757",
+        "event": "Bolivia",
+        "iou": 0.4678,
+        "mean_hand_m": 2.8
+      },
+      {
+        "chip_id": "Bolivia_129334",
+        "event": "Bolivia",
+        "iou": 0.8306,
+        "mean_hand_m": 1.03
+      },
+      {
+        "chip_id": "Bolivia_195474",
+        "event": "Bolivia",
+        "iou": 0.0267,
+        "mean_hand_m": 3.04
+      },
+      {
+        "chip_id": "Bolivia_23014",
+        "event": "Bolivia",
+        "iou": 0.196,
+        "mean_hand_m": 1.65
+      },
+      {
+        "chip_id": "Bolivia_233925",
+        "event": "Bolivia",
+        "iou": 0.0,
+        "mean_hand_m": 2.78
+      },
+      {
+        "chip_id": "Bolivia_242570",
+        "event": "Bolivia",
+        "iou": 0.1742,
+        "mean_hand_m": 1.06
+      },
+      {
+        "chip_id": "Bolivia_290290",
+        "event": "Bolivia",
+        "iou": 0.4229,
+        "mean_hand_m": 1.63
+      },
+      {
+        "chip_id": "Bolivia_294583",
+        "event": "Bolivia",
+        "iou": 0.4453,
+        "mean_hand_m": 2.75
+      },
+      {
+        "chip_id": "Bolivia_312675",
+        "event": "Bolivia",
+        "iou": 0.1877,
+        "mean_hand_m": 2.76
+      },
+      {
+        "chip_id": "Bolivia_314919",
+        "event": "Bolivia",
+        "iou": 0.5295,
+        "mean_hand_m": 2.41
+      },
+      {
+        "chip_id": "Bolivia_360519",
+        "event": "Bolivia",
+        "iou": 0.1773,
+        "mean_hand_m": 1.26
+      },
+      {
+        "chip_id": "Bolivia_379434",
+        "event": "Bolivia",
+        "iou": 0.0673,
+        "mean_hand_m": 1.04
+      },
+      {
+        "chip_id": "Bolivia_432776",
+        "event": "Bolivia",
+        "iou": 0.5233,
+        "mean_hand_m": 1.92
+      },
+      {
+        "chip_id": "Bolivia_60373",
+        "event": "Bolivia",
+        "iou": 0.4094,
+        "mean_hand_m": 0.41
+      },
+      {
+        "chip_id": "Bolivia_76104",
+        "event": "Bolivia",
+        "iou": 0.0,
+        "mean_hand_m": 2.21
+      }
+    ]
+  }
+}

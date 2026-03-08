@@ -1,0 +1,110 @@
+=== JOB START ===
+dkucc-core-gpu-dkurc-a-it08-28.rc.duke.edu
+Sun Mar  8 05:07:50 AM EDT 2026
+CUDA_VISIBLE_DEVICES=0
+PWD=/dkucc/home/bd159/terrainflood
+
+Device: cuda
+Checkpoint: checkpoints/variant_D/best.pt
+MC samples T=20
+
+Built Variant D: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+Loaded Variant D from epoch 2 (best val IoU=0.3362)
+
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+Finding optimal temperature on val set (Ecuador + Paraguay)...
+  Optimal temperature T = 0.1000
+  Saved → results/uncertainty_tta/temperature.json
+Analysing logit distribution on val set...
+[analyze_logit_distribution] Logit range looks reasonable (95th‐pct |logit|=0.4).
+  Saved: results/uncertainty_tta/logit_distribution.png
+Using TTA inference (8 augmentations)...
+
+Processed 15 chips
+
+  Applying temperature scaling (T=0.1000) to mean_prob...
+Computing calibration metrics...
+
+==================================================
+ECE before calibration : 0.3822
+ECE after  calibration : 0.0737  (T=0.1000)
+Overall Brier : 0.0471
+Mean variance : 0.0005
+==================================================
+
+Per-event ECE:
+  Bolivia         ECE=0.0737  Brier=0.0471
+
+Metrics saved → results/uncertainty_tta/uncertainty_metrics.json
+  Saved: results/uncertainty_tta/reliability_diagram.png
+
+Saving uncertainty maps for first 15 chips...
+
+Saving .npy arrays to results/uncertainty_tta/arrays...
+  Saved 15 chips × 2 arrays
+
+Done. Results in results/uncertainty_tta
+=== TTA DONE ===
+
+Device: cuda
+Checkpoint: checkpoints/variant_D/best.pt
+MC samples T=30
+
+Built Variant D: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+Loaded Variant D from epoch 2 (best val IoU=0.3362)
+
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+Finding optimal temperature on val set (Ecuador + Paraguay)...
+  Optimal temperature T = 0.1000
+  Saved → results/uncertainty_mc/temperature.json
+Analysing logit distribution on val set...
+[analyze_logit_distribution] Logit range looks reasonable (95th‐pct |logit|=0.4).
+  Saved: results/uncertainty_mc/logit_distribution.png
+
+Processed 15 chips
+
+  Applying temperature scaling (T=0.1000) to mean_prob...
+Computing calibration metrics...
+
+==================================================
+ECE before calibration : 0.3612
+ECE after  calibration : 0.0777  (T=0.1000)
+Overall Brier : 0.0535
+Mean variance : 0.0004
+==================================================
+
+Per-event ECE:
+  Bolivia         ECE=0.0777  Brier=0.0535
+
+Metrics saved → results/uncertainty_mc/uncertainty_metrics.json
+  Saved: results/uncertainty_mc/reliability_diagram.png
+
+Saving uncertainty maps for first 15 chips...
+
+Saving .npy arrays to results/uncertainty_mc/arrays...
+  Saved 15 chips × 2 arrays
+
+Done. Results in results/uncertainty_mc
+=== MC DONE ===
+=== JOB DONE ===
+Sun Mar  8 05:10:24 AM EDT 2026

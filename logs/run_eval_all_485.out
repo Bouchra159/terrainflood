@@ -1,0 +1,791 @@
+=== JOB START ===
+dkucc-core-gpu-dkurc-a-it08-28.rc.duke.edu
+Sun Mar  8 05:18:28 AM EDT 2026
+CUDA_VISIBLE_DEVICES=0
+PWD=/dkucc/home/bd159/terrainflood
+=== FULL ABLATION EVALUATION ===
+
+Ablation evaluation
+Checkpoints dir : checkpoints
+Output dir      : results/ablation
+
+
+--- Evaluating Variant A ---
+Built Variant A: {'total': 24341681, 'trainable': 24341681, 'encoder': 21281536, 'decoder': 3060145}
+  Loaded Variant A  epoch=39  best_iou=0.2977
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+
+--- Evaluating Variant B ---
+Built Variant B: {'total': 24344817, 'trainable': 24344817, 'encoder': 21284672, 'decoder': 3060145}
+  Loaded Variant B  epoch=26  best_iou=0.3229
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+
+--- Evaluating Variant C ---
+Built Variant C: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+  Loaded Variant C  epoch=4  best_iou=0.3446
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+
+--- Evaluating Variant D ---
+Built Variant D: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+  Loaded Variant D  epoch=2  best_iou=0.3362
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+
+--- Evaluating Variant E ---
+Built Variant E: {'total': 24479229, 'trainable': 24479229, 'encoder': 21284672, 'decoder': 3194557}
+  Loaded Variant E  epoch=19  best_iou=0.0973
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+
+--- Evaluating Variant D_plus ---
+Built Variant D_plus: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+  Loaded Variant D_plus  epoch=35  best_iou=0.3511
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+
+Ablation table → results/ablation/ablation_table.csv
+  Saved: results/ablation/ablation_comparison.png
+
+Variant           IoU       F1      ECE    Brier
+--------------------------------------------------
+  A            0.4082   0.5797   0.4023   0.2314
+  B            0.4411   0.6122   0.2404   0.1392
+  C            0.6623   0.7968   0.3699   0.1936
+  D            0.6902   0.8167   0.3643   0.1950
+  E            0.1668   0.2859   0.4931   0.3728
+  D_plus       0.6652   0.7990   0.3200   0.1556
+
+Done. Results in results/ablation
+=== ABLATION TABLE DONE ===
+--- Evaluating Variant A ---
+
+Device      : cuda
+Checkpoint  : checkpoints/variant_A/best.pt
+Output dir  : results/eval_A
+
+Built Variant A: {'total': 24341681, 'trainable': 24341681, 'encoder': 21281536, 'decoder': 3060145}
+  Loaded Variant A  epoch=39  best_iou=0.2977
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+
+=======================================================
+  Variant A — Bolivia OOD
+=======================================================
+  IoU       : 0.4082
+  F1        : 0.5797
+  Precision : 0.4129
+  Recall    : 0.9728
+  ECE       : 0.4023  (target < 0.05)
+  Brier     : 0.2314
+  Mean var  : 0.0000
+=======================================================
+
+Per-event IoU:
+  Bolivia         IoU=0.4082  F1=0.5797
+
+Metrics → results/eval_A/metrics.json
+  Saved: results/eval_A/figures/reliability_diagram.png
+  Saved: results/eval_A/figures/iou_per_event.png
+  Saved: results/eval_A/figures/coverage_accuracy.png
+  Saved: results/eval_A/figures/risk_coverage.png
+  AURC: 0.0000  (lower is better)
+
+Saving flood maps for first 15 chips...
+
+Running boundary variance analysis...
+  Boundary / Interior variance ratio : 0.000
+  Pearson r (variance ~ boundary)    : nan
+  Saved → results/eval_A/boundary_variance.json
+
+Done. Results in results/eval_A
+--- Evaluating Variant B ---
+
+Device      : cuda
+Checkpoint  : checkpoints/variant_B/best.pt
+Output dir  : results/eval_B
+
+Built Variant B: {'total': 24344817, 'trainable': 24344817, 'encoder': 21284672, 'decoder': 3060145}
+  Loaded Variant B  epoch=26  best_iou=0.3229
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+
+=======================================================
+  Variant B — Bolivia OOD
+=======================================================
+  IoU       : 0.4411
+  F1        : 0.6122
+  Precision : 0.4529
+  Recall    : 0.9444
+  ECE       : 0.2404  (target < 0.05)
+  Brier     : 0.1392
+  Mean var  : 0.0000
+=======================================================
+
+Per-event IoU:
+  Bolivia         IoU=0.4411  F1=0.6122
+
+Metrics → results/eval_B/metrics.json
+  Saved: results/eval_B/figures/reliability_diagram.png
+  Saved: results/eval_B/figures/iou_per_event.png
+  Saved: results/eval_B/figures/coverage_accuracy.png
+  Saved: results/eval_B/figures/risk_coverage.png
+  AURC: 0.0000  (lower is better)
+
+Saving flood maps for first 15 chips...
+
+Running boundary variance analysis...
+  Boundary / Interior variance ratio : 0.000
+  Pearson r (variance ~ boundary)    : nan
+  Saved → results/eval_B/boundary_variance.json
+
+Done. Results in results/eval_B
+--- Evaluating Variant C ---
+
+Device      : cuda
+Checkpoint  : checkpoints/variant_C/best.pt
+Output dir  : results/eval_C
+
+Built Variant C: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+  Loaded Variant C  epoch=4  best_iou=0.3446
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+
+=======================================================
+  Variant C — Bolivia OOD
+=======================================================
+  IoU       : 0.6623
+  F1        : 0.7968
+  Precision : 0.7892
+  Recall    : 0.8046
+  ECE       : 0.3699  (target < 0.05)
+  Brier     : 0.1936
+  Mean var  : 0.0000
+=======================================================
+
+Per-event IoU:
+  Bolivia         IoU=0.6623  F1=0.7968
+
+Metrics → results/eval_C/metrics.json
+  Saved: results/eval_C/figures/reliability_diagram.png
+  Saved: results/eval_C/figures/iou_per_event.png
+  Saved: results/eval_C/figures/coverage_accuracy.png
+  Saved: results/eval_C/figures/risk_coverage.png
+  AURC: 0.0000  (lower is better)
+
+Saving flood maps for first 15 chips...
+
+Running boundary variance analysis...
+  Boundary / Interior variance ratio : 0.000
+  Pearson r (variance ~ boundary)    : nan
+  Saved → results/eval_C/boundary_variance.json
+
+Done. Results in results/eval_C
+--- Evaluating Variant D ---
+
+Device      : cuda
+Checkpoint  : checkpoints/variant_D/best.pt
+Output dir  : results/eval_D
+
+Built Variant D: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+  Loaded Variant D  epoch=2  best_iou=0.3362
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+
+=======================================================
+  Variant D — Bolivia OOD
+=======================================================
+  IoU       : 0.6894
+  F1        : 0.8162
+  Precision : 0.7851
+  Recall    : 0.8498
+  ECE       : 0.3638  (target < 0.05)
+  Brier     : 0.1949
+  Mean var  : 0.0004
+=======================================================
+
+Per-event IoU:
+  Bolivia         IoU=0.6894  F1=0.8162
+
+Metrics → results/eval_D/metrics.json
+  Saved: results/eval_D/figures/reliability_diagram.png
+  Saved: results/eval_D/figures/iou_per_event.png
+  Saved: results/eval_D/figures/coverage_accuracy.png
+  Saved: results/eval_D/figures/risk_coverage.png
+  AURC: 0.4845  (lower is better)
+
+Saving flood maps for first 15 chips...
+
+Running boundary variance analysis...
+  Boundary / Interior variance ratio : 0.591
+  Pearson r (variance ~ boundary)    : -0.1427
+  Saved → results/eval_D/boundary_variance.json
+
+Done. Results in results/eval_D
+--- Evaluating Variant E ---
+
+Device      : cuda
+Checkpoint  : checkpoints/variant_E/best.pt
+Output dir  : results/eval_E
+
+Built Variant E: {'total': 24479229, 'trainable': 24479229, 'encoder': 21284672, 'decoder': 3194557}
+  Loaded Variant E  epoch=19  best_iou=0.0973
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+
+=======================================================
+  Variant E — Bolivia OOD
+=======================================================
+  IoU       : 0.1667
+  F1        : 0.2858
+  Precision : 0.1668
+  Recall    : 0.9950
+  ECE       : 0.4960  (target < 0.05)
+  Brier     : 0.3771
+  Mean var  : 0.0010
+=======================================================
+
+Per-event IoU:
+  Bolivia         IoU=0.1667  F1=0.2858
+
+Metrics → results/eval_E/metrics.json
+  Saved: results/eval_E/figures/reliability_diagram.png
+  Saved: results/eval_E/figures/iou_per_event.png
+  Saved: results/eval_E/figures/coverage_accuracy.png
+  Saved: results/eval_E/figures/risk_coverage.png
+  AURC: 0.5533  (lower is better)
+
+Saving flood maps for first 15 chips...
+
+Running boundary variance analysis...
+  Boundary / Interior variance ratio : 1.300
+  Pearson r (variance ~ boundary)    : -0.0315
+  Saved → results/eval_E/boundary_variance.json
+
+Done. Results in results/eval_E
+--- Evaluating Variant D_plus ---
+
+Device      : cuda
+Checkpoint  : checkpoints/variant_D_plus/best.pt
+Output dir  : results/eval_D_plus
+
+Built Variant D_plus: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+  Loaded Variant D_plus  epoch=35  best_iou=0.3511
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+
+=======================================================
+  Variant D_plus — Bolivia OOD
+=======================================================
+  IoU       : 0.6500
+  F1        : 0.7879
+  Precision : 0.6903
+  Recall    : 0.9175
+  ECE       : 0.3240  (target < 0.05)
+  Brier     : 0.1601
+  Mean var  : 0.0048
+=======================================================
+
+Per-event IoU:
+  Bolivia         IoU=0.6500  F1=0.7879
+
+Metrics → results/eval_D_plus/metrics.json
+  Saved: results/eval_D_plus/figures/reliability_diagram.png
+  Saved: results/eval_D_plus/figures/iou_per_event.png
+  Saved: results/eval_D_plus/figures/coverage_accuracy.png
+  Saved: results/eval_D_plus/figures/risk_coverage.png
+  AURC: 0.5394  (lower is better)
+
+Saving flood maps for first 15 chips...
+
+Running boundary variance analysis...
+  Boundary / Interior variance ratio : 1.008
+  Pearson r (variance ~ boundary)    : 0.0926
+  Saved → results/eval_D_plus/boundary_variance.json
+
+Done. Results in results/eval_D_plus
+--- Evaluating Variant baseline_unet ---
+
+Device      : cuda
+Checkpoint  : checkpoints/variant_baseline_unet/best.pt
+Output dir  : results/eval_baseline_unet
+
+Built Variant baseline_unet: {'total': 24341681, 'trainable': 24341681, 'encoder': 21281536, 'decoder': 3060145}
+  Loaded Variant baseline_unet  epoch=39  best_iou=0.2977
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+
+=======================================================
+  Variant baseline_unet — Bolivia OOD
+=======================================================
+  IoU       : 0.4082
+  F1        : 0.5797
+  Precision : 0.4129
+  Recall    : 0.9728
+  ECE       : 0.4023  (target < 0.05)
+  Brier     : 0.2314
+  Mean var  : 0.0000
+=======================================================
+
+Per-event IoU:
+  Bolivia         IoU=0.4082  F1=0.5797
+
+Metrics → results/eval_baseline_unet/metrics.json
+  Saved: results/eval_baseline_unet/figures/reliability_diagram.png
+  Saved: results/eval_baseline_unet/figures/iou_per_event.png
+  Saved: results/eval_baseline_unet/figures/coverage_accuracy.png
+  Saved: results/eval_baseline_unet/figures/risk_coverage.png
+  AURC: 0.0000  (lower is better)
+
+Saving flood maps for first 15 chips...
+
+Running boundary variance analysis...
+  Boundary / Interior variance ratio : 0.000
+  Pearson r (variance ~ boundary)    : nan
+  Saved → results/eval_baseline_unet/boundary_variance.json
+
+Done. Results in results/eval_baseline_unet
+=== PER-VARIANT EVAL DONE ===
+
+Loading: checkpoints/variant_A/best.pt
+Built Variant A: {'total': 24341681, 'trainable': 24341681, 'encoder': 21281536, 'decoder': 3060145}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Variant A: τ* = 0.80  IoU@τ* = 0.5695  IoU@0.5 = 0.4082
+
+Loading: checkpoints/variant_B/best.pt
+Built Variant B: {'total': 24344817, 'trainable': 24344817, 'encoder': 21284672, 'decoder': 3060145}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Variant B: τ* = 0.77  IoU@τ* = 0.5235  IoU@0.5 = 0.4411
+
+Loading: checkpoints/variant_C/best.pt
+Built Variant C: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Variant C: τ* = 0.51  IoU@τ* = 0.6668  IoU@0.5 = 0.6623
+
+Loading: checkpoints/variant_D/best.pt
+Built Variant D: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Variant D: τ* = 0.50  IoU@τ* = 0.6860  IoU@0.5 = 0.6860
+
+Loading: checkpoints/variant_E/best.pt
+Built Variant E: {'total': 24479229, 'trainable': 24479229, 'encoder': 21284672, 'decoder': 3194557}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Variant E: τ* = 0.64  IoU@τ* = 0.1988  IoU@0.5 = 0.1675
+
+Loading: checkpoints/variant_D_plus/best.pt
+Built Variant D_plus: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Variant D_plus: τ* = 0.52  IoU@τ* = 0.6823  IoU@0.5 = 0.6481
+
+Loading: checkpoints/variant_baseline_unet/best.pt
+Built Variant baseline_unet: {'total': 24341681, 'trainable': 24341681, 'encoder': 21281536, 'decoder': 3060145}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (4 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Variant baseline_unet: τ* = 0.80  IoU@τ* = 0.5695  IoU@0.5 = 0.4082
+  Saved: results/threshold_sweep/threshold_sweep_iou.png
+  Saved: results/threshold_sweep/threshold_sweep_f1.png
+
+Variant          τ*     IoU@τ*    IoU@0.5
+------------------------------------------
+  A           0.800     0.5695     0.4082
+  B           0.770     0.5235     0.4411
+  C           0.510     0.6668     0.6623
+  D           0.500     0.6860     0.6860
+  E           0.640     0.1988     0.1675
+  D_plus      0.520     0.6823     0.6481
+  baseline_unet  0.800     0.5695     0.4082
+
+Results saved → results/threshold_sweep
+=== THRESHOLD SWEEP DONE ===
+
+Processing: checkpoints/variant_A/best.pt
+Built Variant A: {'total': 24341681, 'trainable': 24341681, 'encoder': 21281536, 'decoder': 3060145}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (1 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Variant A: n=15  mean IoU=0.2972  Pearson r(IoU,HAND)=-0.218
+
+Processing: checkpoints/variant_B/best.pt
+Built Variant B: {'total': 24344817, 'trainable': 24344817, 'encoder': 21284672, 'decoder': 3060145}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (1 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Variant B: n=15  mean IoU=0.3366  Pearson r(IoU,HAND)=-0.122
+
+Processing: checkpoints/variant_C/best.pt
+Built Variant C: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (1 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Variant C: n=15  mean IoU=0.4151  Pearson r(IoU,HAND)=-0.205
+
+Processing: checkpoints/variant_D/best.pt
+Built Variant D: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (1 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Variant D: n=15  mean IoU=0.4339  Pearson r(IoU,HAND)=-0.158
+
+Processing: checkpoints/variant_E/best.pt
+Built Variant E: {'total': 24479229, 'trainable': 24479229, 'encoder': 21284672, 'decoder': 3194557}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (1 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Variant E: n=15  mean IoU=0.1736  Pearson r(IoU,HAND)=-0.058
+
+Processing: checkpoints/variant_D_plus/best.pt
+Built Variant D_plus: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (1 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Variant D_plus: n=15  mean IoU=0.4142  Pearson r(IoU,HAND)=-0.184
+
+Processing: checkpoints/variant_baseline_unet/best.pt
+Built Variant baseline_unet: {'total': 24341681, 'trainable': 24341681, 'encoder': 21281536, 'decoder': 3060145}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (1 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Variant baseline_unet: n=15  mean IoU=0.2972  Pearson r(IoU,HAND)=-0.218
+  Saved: results/iou_vs_hand/iou_vs_hand_scatter.png
+  Saved: results/iou_vs_hand/iou_vs_hand_binned.png
+
+Variant         n      IoU  HAND mean  Pearson r
+--------------------------------------------------
+  A            15   0.2972        1.9     -0.218
+  B            15   0.3366        1.9     -0.122
+  C            15   0.4151        1.9     -0.205
+  D            15   0.4339        1.9     -0.158
+  E            15   0.1736        1.9     -0.058
+  D_plus       15   0.4142        1.9     -0.184
+  baseline_unet   15   0.2972        1.9     -0.218
+
+Results saved → results/iou_vs_hand
+=== IOUvsHAND DONE ===
+
+Processing: checkpoints/variant_C/best.pt
+Built Variant C: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (1 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Extracted 2,867,815 pixel observations
+  Pearson r(empirical α, theory) = +0.543
+  Saved: results/alpha_vs_hand/alpha_vs_hand_C.png
+  Saved: results/alpha_vs_hand/alpha_vs_hand_scatter_C.png
+
+Processing: checkpoints/variant_D/best.pt
+Built Variant D: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (1 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Extracted 2,867,815 pixel observations
+  Pearson r(empirical α, theory) = -0.889
+  Saved: results/alpha_vs_hand/alpha_vs_hand_D.png
+  Saved: results/alpha_vs_hand/alpha_vs_hand_scatter_D.png
+
+Processing: checkpoints/variant_E/best.pt
+Built Variant E: {'total': 24479229, 'trainable': 24479229, 'encoder': 21284672, 'decoder': 3194557}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (1 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Extracted 2,867,815 pixel observations
+  Pearson r(empirical α, theory) = -0.863
+  Saved: results/alpha_vs_hand/alpha_vs_hand_E.png
+  Saved: results/alpha_vs_hand/alpha_vs_hand_scatter_E.png
+
+Processing: checkpoints/variant_D_plus/best.pt
+Built Variant D_plus: {'total': 24476093, 'trainable': 24476093, 'encoder': 21281536, 'decoder': 3194557}
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=train chips=364 flood_ratio=0.066 pos_weight=14.18
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=val chips=67 flood_ratio=0.086 pos_weight=10.61
+[FloodDataset] Loaded norm stats from data/sen1floods11/norm_stats.json
+[FloodDataset] split=test chips=15 flood_ratio=0.159 pos_weight=5.30
+
+DataLoaders ready:
+  Train :  364 chips  (1 per batch)
+  Val   :   67 chips
+  Test  :   15 chips  ← Bolivia OOD holdout
+  Extracted 2,867,815 pixel observations
+  Pearson r(empirical α, theory) = +0.812
+  Saved: results/alpha_vs_hand/alpha_vs_hand_D_plus.png
+  Saved: results/alpha_vs_hand/alpha_vs_hand_scatter_D_plus.png
+
+Variant        n_pixels  r vs theory
+--------------------------------------
+  C           2,867,815       +0.542
+  D           2,867,815       -0.889
+  E           2,867,815       -0.863
+  D_plus      2,867,815       +0.812
+
+Results saved → results/alpha_vs_hand
+=== ALPHA_VS_HAND DONE ===
+Device: cuda
+ERROR: provide --checkpoint_a, or --checkpoint_a + --checkpoint_b, or --ablation + --checkpoints_dir
