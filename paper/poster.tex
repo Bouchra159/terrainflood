@@ -1,7 +1,7 @@
 %% ============================================================
 %%  DKU Signature Work Research Poster — Class of 2026
-%%  Flood Inundation Mapping From Sentinel-1 SAR Using
-%%  HAND-Guided Gating and Uncertainty Quantification
+%%  TerrainFlood-UQ: Physics-Informed SAR Flood Mapping
+%%  with HAND-Guided Gating and Uncertainty Quantification
 %%
 %%  Author : Bouchra Daddaoui | Computation and Design
 %%  Mentor : Prof. Dongmian Zou, Ph.D.
@@ -16,7 +16,7 @@
 \usepackage[
   orientation=portrait,
   size=a0,
-  scale=1.15
+  scale=1.08
 ]{beamerposter}
 
 %% ---- Core packages ----------------------------------------
@@ -39,14 +39,18 @@
 \usepackage{setspace}
 \usepackage{calc}
 \usepackage{url}
+\usepackage{caption}
+\captionsetup{font=footnotesize,labelfont={bf,color=dkuDarkTeal},skip=3pt}
+
+\graphicspath{{figures/}}
 
 %% ---- DKU Colours -----------------------------------------
-\definecolor{dkuTeal}{HTML}{4BAAA5}      % primary teal
-\definecolor{dkuDarkTeal}{HTML}{2E7873}  % darker teal for rules
-\definecolor{dkuLightTeal}{HTML}{D6EEEC} % very light teal background
-\definecolor{dkuGold}{HTML}{C9A227}      % accent gold
-\definecolor{dkuGrey}{HTML}{4A4A4A}      % body text grey
-\definecolor{dkuLightGrey}{HTML}{F5F5F5} % card background
+\definecolor{dkuTeal}{HTML}{4BAAA5}
+\definecolor{dkuDarkTeal}{HTML}{2E7873}
+\definecolor{dkuLightTeal}{HTML}{D6EEEC}
+\definecolor{dkuGold}{HTML}{C9A227}
+\definecolor{dkuGrey}{HTML}{4A4A4A}
+\definecolor{dkuLightGrey}{HTML}{F5F5F5}
 \definecolor{alertRed}{HTML}{C0392B}
 \definecolor{successGreen}{HTML}{27AE60}
 \definecolor{highlightBlue}{HTML}{2980B9}
@@ -60,69 +64,41 @@
 %% ---- tcolorbox styles ------------------------------------
 \tcbset{
   posterbox/.style={
-    enhanced,
-    boxrule=0pt,
-    frame hidden,
+    enhanced, boxrule=0pt, frame hidden,
     colback=dkuLightGrey,
     borderline west={4pt}{0pt}{dkuTeal},
-    arc=4pt,
-    left=12pt, right=12pt, top=10pt, bottom=10pt,
+    arc=4pt, left=12pt, right=12pt, top=10pt, bottom=10pt,
     before upper={\setlength{\parskip}{4pt}\justifying\small},
   },
   sectiontitle/.style={
-    enhanced,
-    boxrule=0pt,
-    frame hidden,
-    colback=dkuTeal,
-    coltext=white,
-    arc=4pt,
+    enhanced, boxrule=0pt, frame hidden,
+    colback=dkuTeal, coltext=white, arc=4pt,
     left=14pt, right=14pt, top=8pt, bottom=8pt,
     fontupper=\Large\bfseries,
   },
   resultbox/.style={
-    enhanced,
-    boxrule=1.5pt,
-    colframe=dkuTeal,
-    colback=white,
-    arc=6pt,
+    enhanced, boxrule=1.5pt, colframe=dkuTeal,
+    colback=white, arc=6pt,
     left=10pt, right=10pt, top=8pt, bottom=8pt,
     fontupper=\footnotesize,
   },
-  keymetric/.style={
-    enhanced,
-    boxrule=0pt,
-    frame hidden,
-    colback=dkuTeal,
-    coltext=white,
-    arc=8pt,
-    halign=center,
-    valign=center,
-    left=6pt, right=6pt, top=6pt, bottom=6pt,
-  },
-  keymetric_alt/.style={
-    enhanced,
-    boxrule=2pt,
-    colframe=dkuTeal,
-    colback=white,
-    coltext=dkuDarkTeal,
-    arc=8pt,
-    halign=center,
-    valign=center,
-    left=6pt, right=6pt, top=6pt, bottom=6pt,
-  },
   warnbox/.style={
-    enhanced,
-    boxrule=0pt,
-    frame hidden,
-    colback=dkuGold!20,
+    enhanced, boxrule=0pt, frame hidden,
+    colback=dkuGold!18,
     borderline west={4pt}{0pt}{dkuGold},
-    arc=4pt,
-    left=12pt, right=12pt, top=8pt, bottom=8pt,
+    arc=4pt, left=12pt, right=12pt, top=8pt, bottom=8pt,
+    before upper={\setlength{\parskip}{4pt}\justifying\small},
+  },
+  findingbox/.style={
+    enhanced, boxrule=0pt, frame hidden,
+    colback=dkuLightTeal,
+    borderline west={4pt}{0pt}{dkuDarkTeal},
+    arc=4pt, left=12pt, right=12pt, top=8pt, bottom=8pt,
     before upper={\setlength{\parskip}{4pt}\justifying\small},
   },
 }
 
-%% ===========================================================
+%% ============================================================
 \begin{document}
 \begin{frame}[t,fragile]{}
 
@@ -130,119 +106,96 @@
 %%  HEADER BLOCK
 %% ===========================================================
 \begin{tikzpicture}[remember picture, overlay]
-  %% Full-width teal banner
   \fill[dkuTeal] (current page.north west)
-    rectangle ([yshift=-12.5cm]current page.north east);
-  %% Bottom rule on banner
-  \fill[dkuDarkTeal] ([yshift=-12.5cm]current page.north west)
-    rectangle ([yshift=-13.1cm]current page.north east);
+    rectangle ([yshift=-12.0cm]current page.north east);
+  \fill[dkuDarkTeal] ([yshift=-12.0cm]current page.north west)
+    rectangle ([yshift=-12.6cm]current page.north east);
 \end{tikzpicture}
 
-\vspace{0.2cm}
+\vspace{0.1cm}
 
 %% --- Header content ----------------------------------------
 \begin{columns}[T]
-  \begin{column}{0.13\textwidth}
-    \vspace{0.6cm}
-    \hspace{0.8cm}
-    %% DKU Logo placeholder — replace with actual DKU logo file
+  \begin{column}{0.12\textwidth}
+    \vspace{0.5cm}\hspace{0.8cm}
     \begin{tikzpicture}
       \draw[white, line width=3pt, rounded corners=6pt]
-        (0,0) rectangle (4.8,4.8);
-      \node[white, font=\Large\bfseries] at (2.4,2.8) {DKU};
-      \node[white, font=\small] at (2.4,1.8) {Duke Kunshan};
-      \node[white, font=\small] at (2.4,1.1) {University};
+        (0,0) rectangle (4.5,4.5);
+      \node[white, font=\Large\bfseries] at (2.25,2.7) {DKU};
+      \node[white, font=\small] at (2.25,1.7) {Duke Kunshan};
+      \node[white, font=\small] at (2.25,1.0) {University};
     \end{tikzpicture}
-    %% To use the real logo, comment out the tikzpicture above and uncomment:
-    %% \includegraphics[width=4.5cm]{dku_logo_white.png}
   \end{column}
 
-  \begin{column}{0.74\textwidth}
-    \vspace{0.5cm}
+  \begin{column}{0.76\textwidth}
+    \vspace{0.4cm}
     \begin{center}
-      {\color{white}\fontsize{42}{50}\bfseries\selectfont
-       Flood Inundation Mapping From Sentinel-1 SAR\\[6pt]
-       Using HAND-Guided Gating and\\[6pt]
-       Uncertainty Quantification}\\[14pt]
-      {\color{white!90}\fontsize{24}{30}\selectfont
-       \textbf{Bouchra Daddaoui} \;|\; Computation and Design \quad
-       $\cdot$ \quad
-       Mentor: \textbf{Prof. Dongmian Zou, Ph.D.}}\\[6pt]
-      {\color{white!80}\fontsize{20}{24}\selectfont
-       Duke Kunshan University \;|\; Signature Work \;|\; May 2026}
+      {\color{white}\fontsize{40}{48}\bfseries\selectfont
+       Physics-Informed SAR Flood Mapping with Uncertainty Quantification:\\[5pt]
+       A Terrain-Aware Siamese Network for Out-of-Distribution Generalisation}\\[10pt]
+      {\color{white!90}\fontsize{22}{28}\selectfont
+       \textbf{Bouchra Daddaoui} \;|\; Computation \& Design (Public Policy)
+       \quad$\cdot$\quad Mentor: \textbf{Prof. Dongmian Zou, Ph.D.}}\\[5pt]
+      {\color{white!80}\fontsize{18}{22}\selectfont
+       Duke Kunshan University \;|\; Signature Work \;|\; Class of 2026}
     \end{center}
   \end{column}
 
-  \begin{column}{0.13\textwidth}
-    \vspace{0.6cm}
-    \hspace{0.3cm}
+  \begin{column}{0.12\textwidth}
+    \vspace{0.5cm}\hspace{0.2cm}
     \begin{tikzpicture}
-      \fill[white, rounded corners=6pt] (0,0) rectangle (4.8,4.8);
+      \fill[white, rounded corners=6pt] (0,0) rectangle (4.5,4.5);
       \node[dkuTeal, font=\fontsize{11}{13}\bfseries, align=center]
-        at (2.4,3.2) {Signature\\Work};
+        at (2.25,3.1) {Signature\\Work};
       \node[dkuTeal, font=\fontsize{14}{16}\bfseries, align=center]
-        at (2.4,2.0) {Class of\\2026};
-      \node[dkuTeal, font=\normalsize, align=center]
-        at (2.4,0.9) {\textbf{DKU}};
+        at (2.25,1.9) {Class of\\2026};
+      \node[dkuTeal, font=\normalsize] at (2.25,0.8) {\textbf{DKU}};
     \end{tikzpicture}
   \end{column}
 \end{columns}
 
-\vspace{1.2cm}
+\vspace{1.1cm}
 
 %% ===========================================================
 %%  KEY METRICS BAR
 %% ===========================================================
-\hspace*{1.8cm}
-\begin{minipage}{0.94\textwidth}
+\hspace*{1.6cm}
+\begin{minipage}{0.95\textwidth}
 \begin{tcolorbox}[
   enhanced, colback=dkuLightTeal, colframe=dkuTeal,
   boxrule=1.5pt, arc=8pt,
-  left=14pt, right=14pt, top=10pt, bottom=10pt,
+  left=10pt, right=10pt, top=8pt, bottom=8pt,
 ]
 \begin{columns}[c]
-  \begin{column}{0.19\textwidth}
-    \centering
-    {\color{dkuDarkTeal}\fontsize{40}{44}\bfseries\selectfont 0.724}\\
-    {\color{dkuGrey}\normalsize Best Model IoU (D$_\text{full}$)}
+  \begin{column}{0.18\textwidth}\centering
+    {\color{dkuDarkTeal}\fontsize{38}{42}\bfseries\selectfont 0.724}\\
+    {\color{dkuGrey}\small Best IoU · D\textsubscript{full} (Bolivia OOD)}
   \end{column}
-  \begin{column}{0.005\textwidth}
-    \color{dkuTeal}\rule{1.5pt}{5cm}
+  \begin{column}{0.004\textwidth}\color{dkuTeal}\rule{1.5pt}{4.5cm}\end{column}
+  \begin{column}{0.18\textwidth}\centering
+    {\color{dkuDarkTeal}\fontsize{38}{42}\bfseries\selectfont +22.1pp}\\
+    {\color{dkuGrey}\small Gate vs SAR-only IoU gain}
   \end{column}
-  \begin{column}{0.19\textwidth}
-    \centering
-    {\color{dkuDarkTeal}\fontsize{40}{44}\bfseries\selectfont 78.6\%}\\
-    {\color{dkuGrey}\normalsize ECE Reduction via Cal.}
+  \begin{column}{0.004\textwidth}\color{dkuTeal}\rule{1.5pt}{4.5cm}\end{column}
+  \begin{column}{0.18\textwidth}\centering
+    {\color{dkuDarkTeal}\fontsize{38}{42}\bfseries\selectfont 78.6\%}\\
+    {\color{dkuGrey}\small ECE reduction via temp. scaling}
   \end{column}
-  \begin{column}{0.005\textwidth}
-    \color{dkuTeal}\rule{1.5pt}{5cm}
+  \begin{column}{0.004\textwidth}\color{dkuTeal}\rule{1.5pt}{4.5cm}\end{column}
+  \begin{column}{0.18\textwidth}\centering
+    {\color{dkuDarkTeal}\fontsize{38}{42}\bfseries\selectfont 7.84M}\\
+    {\color{dkuGrey}\small People at flood risk (Bolivia)}
   \end{column}
-  \begin{column}{0.19\textwidth}
-    \centering
-    {\color{dkuDarkTeal}\fontsize{40}{44}\bfseries\selectfont 7.84M}\\
-    {\color{dkuGrey}\normalsize People at Flood Risk}
-  \end{column}
-  \begin{column}{0.005\textwidth}
-    \color{dkuTeal}\rule{1.5pt}{5cm}
-  \end{column}
-  \begin{column}{0.19\textwidth}
-    \centering
-    {\color{dkuDarkTeal}\fontsize{40}{44}\bfseries\selectfont +61.4\%}\\
-    {\color{dkuGrey}\normalsize TTA Uncertainty Corr.}
-  \end{column}
-  \begin{column}{0.005\textwidth}
-    \color{dkuTeal}\rule{1.5pt}{5cm}
-  \end{column}
-  \begin{column}{0.19\textwidth}
-    \centering
-    {\color{dkuDarkTeal}\fontsize{40}{44}\bfseries\selectfont 446}\\
-    {\color{dkuGrey}\normalsize Sen1Floods11 Chips}
+  \begin{column}{0.004\textwidth}\color{dkuTeal}\rule{1.5pt}{4.5cm}\end{column}
+  \begin{column}{0.18\textwidth}\centering
+    {\color{dkuDarkTeal}\fontsize{38}{42}\bfseries\selectfont $r{=}{+}0.61$}\\
+    {\color{dkuGrey}\small TTA uncertainty–error correlation}
   \end{column}
 \end{columns}
 \end{tcolorbox}
 \end{minipage}
 
-\vspace{1.2cm}
+\vspace{1.0cm}
 
 %% ===========================================================
 %%  MAIN CONTENT — THREE COLUMNS
@@ -250,407 +203,400 @@
 \begin{columns}[T]
 
 %%------------------------------------------------------------
-%%  COLUMN 1 — Abstract + Data
+%%  COLUMN 1 — Introduction & Methods
 %%------------------------------------------------------------
 \begin{column}{0.315\textwidth}
-\hspace*{1.8cm}
+\hspace*{1.6cm}
 \begin{minipage}{0.93\textwidth}
 
-%% -- Abstract -----------------------------------------------
+%% ── INTRODUCTION & MOTIVATION ─────────────────────────────
 \begin{tcolorbox}[sectiontitle]
-  \vphantom{Ag} Abstract
+  \vphantom{Ag} Introduction \& Motivation
 \end{tcolorbox}
 \vspace{4pt}
 \begin{tcolorbox}[posterbox]
-Accurate, near-real-time flood mapping is critical for humanitarian response yet
-remains challenging due to persistent cloud cover and the spectral ambiguity of SAR
-imagery. This Signature Work develops \textbf{TerrainFlood-UQ}: a physics-informed
-Siamese ResNet-34 encoder–decoder that (i) integrates Height Above Nearest Drainage
-(HAND) topography through a learnable attention gate, and (ii) quantifies prediction
-uncertainty via Monte Carlo Dropout and Test-Time Augmentation.
-
-Training on the Sen1Floods11 benchmark (Sentinel-1 SAR; 11 countries) and
-\textbf{evaluated out-of-distribution on Bolivia}, the best model achieves an
-\textbf{IoU of 0.724}—compared to 0.582 for classical Otsu thresholding and 0.421
-for a standard U-Net baseline.  Calibration is dramatically improved by temperature
-scaling (ECE: $0.363 \to 0.063$). TTA-based uncertainty reliably flags uncertain
-flood boundaries ($r = +0.614$), enabling probabilistic exposure estimates of
-\textbf{7.84 million people at flood risk} in Bolivia with 1.21 million (15.4\%)
-in high-uncertainty zones.
-\end{tcolorbox}
-
-\vspace{14pt}
-
-%% -- Research Gap -------------------------------------------
-\begin{tcolorbox}[sectiontitle]
-  \vphantom{Ag} Motivation
-\end{tcolorbox}
-\vspace{4pt}
-\begin{tcolorbox}[posterbox]
-\begin{itemize}[leftmargin=1.2em,itemsep=3pt]
-  \item[\color{dkuTeal}\textbullet]
-    Floods affect $\sim$250 million people/year; SAR images through cloud cover but
-    water–sand/ice confusion causes high false positives in flat terrain.
-  \item[\color{dkuTeal}\textbullet]
-    Classical methods (Otsu thresholding) are fast but fragile; deep models
-    generalise better but produce \textit{overconfident} predictions without
-    uncertainty estimates.
-  \item[\color{dkuTeal}\textbullet]
-    HAND encodes the \textit{physical likelihood} of inundation: low-lying valleys
-    ($h < 30$ m) flood first.  Injecting this prior into the network gate should
-    reduce false alarms on elevated areas.
-  \item[\color{dkuTeal}\textbullet]
-    No prior work combines HAND gating \textit{and} calibrated UQ for operational
-    SAR flood mapping.
-\end{itemize}
-\end{tcolorbox}
-
-\vspace{14pt}
-
-%% -- Dataset ------------------------------------------------
-\begin{tcolorbox}[sectiontitle]
-  \vphantom{Ag} Dataset — Sen1Floods11
-\end{tcolorbox}
-\vspace{4pt}
-\begin{tcolorbox}[posterbox]
-\textbf{Satellite data:} Sentinel-1 C-band SAR (VV + VH polarisations)
-collected pre- and post-flood; 446 hand-labelled $512 \times 512$ chips across
-11 countries covering diverse flood typologies.\\[4pt]
-
-\textbf{Auxiliary:} HAND raster from MERIT Hydro DEM (z-score normalised in the
-data tensor; denormalised to metres inside the model).\\[4pt]
-
-\textbf{Splits:}
-\begin{itemize}[leftmargin=1.2em,itemsep=2pt,topsep=2pt]
-  \item Train / Val: 10 countries; stratified by flood fraction
-  \item \textbf{Test (OOD): Bolivia only} — 15 chips, 2,867,815 valid pixels
-    \\ \textit{(Bolivia withheld throughout; never seen during training)}
-\end{itemize}
-
-\vspace{4pt}
-\begin{tabular}{@{}lrr@{}}
-  \toprule
-  Split & Chips & Flood px \\
-  \midrule
-  Train & 340 & 22.8\% \\
-  Val   & 91  & 21.6\% \\
-  Test (Bolivia) & 15 & 18.3\% \\
-  \bottomrule
-\end{tabular}
+Between 2000 and 2019, floods affected \textbf{1.65 billion people} and caused
+over US\$650 billion in economic damage (UNDRR, 2020). Near-real-time flood extent
+maps are essential for emergency logistics, yet optical satellite imagery is routinely
+blocked by cloud cover during active flood events. Sentinel-1 C-band SAR penetrates
+clouds and operates day/night, but deep learning models trained on one region
+\textbf{generalise poorly to unseen regions}—the \textit{out-of-distribution (OOD)}
+generalisation problem.
 
 \vspace{6pt}
-Each $512\times512$ chip at 10\,m GSD covers ${\approx}26\,\text{km}^2$.
-Six bands are stacked per chip:
-VV$_\text{pre}$, VH$_\text{pre}$, VV$_\text{post}$, VH$_\text{post}$,
-VV/VH ratio (unused), HAND.
+The Height Above Nearest Drainage (HAND) index encodes a domain-constant physical
+law: water cannot accumulate at elevations far above the nearest drainage channel.
+Encoding this constraint as a \textbf{hard architectural prior} rather than a learned
+feature should improve OOD-stable inductive bias.
+
+\vspace{8pt}
+\textbf{Research Questions}
+\begin{itemize}[leftmargin=1.4em,itemsep=2pt,topsep=2pt]
+  \item[\color{dkuTeal}\textbf{RQ1.}]
+    Does a multiplicative physics gate outperform HAND concatenation for
+    OOD SAR flood segmentation?
+  \item[\color{dkuTeal}\textbf{RQ2.}]
+    Do MC Dropout and test-time augmentation provide actionable, well-calibrated
+    flood uncertainty?
+  \item[\color{dkuTeal}\textbf{RQ3.}]
+    Can uncertainty-stratified flood predictions support population-exposure
+    triage for humanitarian response?
+\end{itemize}
+
+\vspace{8pt}
+\begin{center}
+  \includegraphics[width=0.97\linewidth]{study_area.png}
+  \captionof{figure}{\textbf{Fig. 1} Study area (Beni lowlands, Bolivia) and
+  TerrainFlood-UQ OOD prediction region. Circles scaled by chip flood coverage;
+  HAND mean = 1.15 m confirms extreme floodplain flatness.}
+\end{center}
 \end{tcolorbox}
 
-\vspace{14pt}
+\vspace{12pt}
 
-%% -- Why Bolivia --------------------------------------------
-\begin{tcolorbox}[warnbox]
-\textbf{Why Bolivia as holdout?} Bolivia's 2018 Amazonian flood was catastrophic
-(80,000 displaced) but is climatically \textit{unlike} the training countries,
-testing true out-of-distribution generalisation—the hardest and most realistic
-evaluation scenario.
+%% ── MATERIALS AND METHODS ─────────────────────────────────
+\begin{tcolorbox}[sectiontitle]
+  \vphantom{Ag} Materials and Methods
+\end{tcolorbox}
+\vspace{4pt}
+\begin{tcolorbox}[posterbox]
+\textbf{SAR imagery.} Sen1Floods11 (Bonafilia et al. 2020): 446 co-registered
+Sentinel-1 VV/VH chips, $512\!\times\!512\,\text{px}$ at 10\,m across 14 flood
+events covering 11 ecoregions. Bolivia (15 chips, 2,867,815 pixels) withheld
+as geographically disjoint test set.
+
+\vspace{5pt}
+\textbf{Terrain.} HAND computed from MERIT Hydro DEM (Yamazaki et al. 2019);
+90\,m, resampled to 10\,m. Normalised per-chip; $\mu{=}9.35\,\text{m}$,
+$\sigma{=}28.33\,\text{m}$. Exported via Google Earth Engine JavaScript API.
+
+\vspace{5pt}
+\textbf{Population.} WorldPop 2020 unconstrained estimates at 1\,arc-sec
+(Stevens et al. 2015), reprojected to match SAR chip CRS (WGS84 / EPSG:32720).
+
+\vspace{5pt}
+\textbf{Class imbalance.} Train ${\sim}4\%$ flood; Bolivia test ${\sim}12\%$
+reflecting real-world rarity of open-water pixels.
+
+\vspace{8pt}
+\begin{center}
+  \includegraphics[width=0.97\linewidth]{dataset.jpeg}
+  \captionof{figure}{\textbf{Fig. 2} TerrainFlood-UQ dataset: SAR VV diversity
+  across 9 of 11 global ecoregions used in training.}
+\end{center}
+
+\vspace{6pt}
+\textbf{Encoder.} Weight-shared Siamese ResNet-34 processes pre-event and
+post-event SAR branches to produce aligned change-sensitive feature maps
+$F_\text{pre}$ and $F_\text{post}$.
+
+\vspace{5pt}
+\textbf{HAND gate.} $\alpha(h) = \exp(-h/50)$. Differentiable; zero learnable
+parameters; globally applicable via MERIT Hydro. Suppresses flood logits wherever
+terrain physics preclude inundation ($\alpha \!\approx\! 0$ at $h > 150\,\text{m}$).
+
+\vspace{5pt}
+\textbf{Uncertainty.} MC Dropout ($p{=}0.2$, $T{=}20$ passes) and TTA over D$_4$
+symmetry group (8 augmentations). Post-hoc temperature scaling ($T{=}0.10$).
+
+\vspace{5pt}
+\textbf{Training.} BCE ($\omega{=}10$) + Dice loss; Adam ($\text{lr}{=}1\!\times\!
+10^{-4}$); batch=8; patience=25; max 120 epochs. NVIDIA L20 48\,GB GPU (DKUCC cluster).
+
+\vspace{5pt}
+\textbf{Ablation study.} Four designs (A–D) test each design choice:
+baseline, HAND concat, physics gate, gate+MC Dropout. Full retraining
+(patience=25) distinguishes training-time convergence from architectural effects.
+
+\vspace{8pt}
+\begin{center}
+  \includegraphics[width=0.82\linewidth]{arch.jpeg}
+  \captionof{figure}{\textbf{Fig. 3} TerrainFlood-UQ architecture: Siamese
+  ResNet-34 encoder; HAND gate logit modulation; U-Net decoder; MC Dropout
+  + TTA uncertainty heads.}
+\end{center}
 \end{tcolorbox}
 
 \end{minipage}
 \end{column}
 
 %%------------------------------------------------------------
-%%  COLUMN 2 — Methods
+%%  COLUMN 2 — Results (Figures + Tables)
 %%------------------------------------------------------------
 \begin{column}{0.37\textwidth}
 
-%% -- Architecture -------------------------------------------
 \begin{tcolorbox}[sectiontitle]
-  \vphantom{Ag} Model Architecture — TerrainFlood-UQ
+  \vphantom{Ag} Results
 \end{tcolorbox}
 \vspace{4pt}
 \begin{tcolorbox}[posterbox]
 
-%% Architecture diagram (ASCII-art schematic)
+%% --- Spatial Comparison figure ---
 \begin{center}
-\begin{tikzpicture}[
-  scale=0.88, every node/.style={font=\small},
-  box/.style={draw=dkuTeal, fill=dkuLightTeal, rounded corners=4pt,
-              minimum width=2.6cm, minimum height=0.75cm, align=center},
-  smallbox/.style={draw=dkuGold, fill=dkuGold!20, rounded corners=3pt,
-                   minimum width=2.2cm, minimum height=0.6cm, align=center,
-                   font=\footnotesize},
-  arrow/.style={->, thick, dkuDarkTeal},
-]
-  %% Pre branch
-  \node[box] (pre) at (0, 4) {Pre-event\\VV, VH};
-  \node[box] (enc1) at (0, 2.4) {ResNet-34\\Encoder};
-  \draw[arrow] (pre) -- (enc1);
-
-  %% Post branch
-  \node[box] (post) at (4.5, 4) {Post-event\\VV, VH};
-  \node[box] (enc2) at (4.5, 2.4) {ResNet-34\\Encoder};
-  \draw[arrow] (post) -- (enc2);
-
-  %% Weight-share annotation
-  \draw[dashed, dkuGrey, thick] (enc1.north east) -- (enc2.north west)
-    node[midway, above, font=\scriptsize, dkuGrey]{shared weights};
-
-  %% HAND branch
-  \node[box, fill=dkuGold!20, draw=dkuGold] (hand) at (9, 4)
-    {HAND\\(metres)};
-  \node[smallbox] (gate) at (9, 2.4) {Attention\\Gate $\alpha$};
-  \draw[arrow] (hand) -- (gate);
-  \node[font=\scriptsize, dkuGrey, align=center] at (9, 1.7)
-    {$\alpha = \exp(-h/50)$};
-
-  %% Fusion
-  \node[box, minimum width=3.0cm] (fuse) at (4.5, 0.9) {Feature\\Fusion};
-  \draw[arrow] (enc1.south) |- (fuse.west);
-  \draw[arrow] (enc2.south) -- (fuse.north);
-  \draw[arrow] (gate.south) |- (fuse.east);
-
-  %% Decoder
-  \node[box, minimum width=3.0cm] (dec) at (4.5, -0.6) {U-Net\\Decoder};
-  \draw[arrow] (fuse) -- (dec);
-
-  %% MC Dropout annotation
-  \node[smallbox] (mcd) at (9, -0.6) {MC Dropout\\(T=20)};
-  \draw[dashed, arrow, dkuGold] (mcd) -- (dec);
-
-  %% Output
-  \node[box, fill=dkuTeal, draw=dkuDarkTeal,
-        text=white, minimum width=3.0cm] (out) at (4.5, -2.1)
-    {Flood Map\\$+$ Uncertainty};
-  \draw[arrow] (dec) -- (out);
-\end{tikzpicture}
+  \includegraphics[width=0.96\linewidth]{chip_analysis.png}
+  \captionof{figure}{\textbf{Fig. 4} Spatial comparison: Variant A (SAR-only,
+  IoU$=0.408$) vs D\textsubscript{full} (physics gate, IoU$=0.724$) on the most
+  flooded Bolivia chip. Panels A–C: flood probability, TTA variance, MC Dropout
+  variance (note the $20\times$ scale difference). Panels D–H: boundary composite,
+  probability histogram, uncertainty scatter, HAND gate curve, threshold sweep.}
 \end{center}
 
-\vspace{6pt}
-\textbf{Key design choices:}
-\begin{itemize}[leftmargin=1.2em,itemsep=3pt]
-  \item \textbf{Siamese encoder}: Weight-shared ResNet-34 processes pre/post SAR
-    images independently, producing change-aware feature maps.
-  \item \textbf{HAND attention gate}: Physical gating $\alpha = \exp(-h/50)$
-    suppresses elevated terrain features; $\alpha \approx 0$ at $h > 150$ m.
-  \item \textbf{MC Dropout (Variant D)}: Dropout layers remain \textit{active at
-    inference}; T=20 stochastic forward passes estimate epistemic uncertainty as
-    predictive variance.
-  \item \textbf{Temperature scaling}: Post-hoc calibration with learned scalar $T$
-    applied to logits before softmax.
-\end{itemize}
 \end{tcolorbox}
-
-\vspace{10pt}
-
-%% -- Ablation Variants --------------------------------------
-\begin{tcolorbox}[sectiontitle]
-  \vphantom{Ag} Ablation Study — Four Variants
-\end{tcolorbox}
-\vspace{4pt}
-\begin{tcolorbox}[posterbox]
-\begin{center}
-\begin{tabular}{@{}clll@{}}
-  \toprule
-  \textbf{Var.} & \textbf{Encoder input} & \textbf{HAND use} & \textbf{UQ} \\
-  \midrule
-  A & VV, VH (2ch) & None & — \\
-  B & VV, VH, HAND (3ch) & Concatenated & — \\
-  C & VV, VH (2ch) & Attention gate & — \\
-  \textbf{D} & \textbf{VV, VH (2ch)} & \textbf{Attention gate} & \textbf{MC Dropout} \\
-  \bottomrule
-\end{tabular}
-\end{center}
-
-\vspace{6pt}
-Variants C$_\text{full}$ and D$_\text{full}$ are fully-retrained with 120 epochs
-and early stopping (patience 25), replacing the 50-epoch checkpoints.\\[4pt]
-
-Variant D+ adds dropout to encoder \textit{and} decoder (degenerate);
-Variant E uses change-difference encoding only (degenerate).
-\end{tcolorbox}
-
-\vspace{10pt}
-
-%% -- Uncertainty Quantification -----------------------------
-\begin{tcolorbox}[sectiontitle]
-  \vphantom{Ag} Uncertainty Quantification
-\end{tcolorbox}
-\vspace{4pt}
-\begin{tcolorbox}[posterbox]
-
-\textbf{MC Dropout} (epistemic):
-$$\hat{\sigma}^2_\text{MC} = \frac{1}{T}\sum_{t=1}^{T} p_t^2 - \bar{p}^2, \quad T=20$$
-
-\textbf{Test-Time Augmentation} (aleatoric + epistemic):
-$$\hat{\sigma}^2_\text{TTA} = \text{Var}\!\left(\{f_\theta(A_k(\mathbf{x}))\}_{k=1}^{8}\right)$$
-using the D$_4$ symmetry group (4 rotations $\times$ 2 flips = 8 augmentations).
 
 \vspace{8pt}
-\begin{center}
-\begin{tabular}{@{}lcc@{}}
-  \toprule
-  Method & Mean Variance & Error Corr. $r$ \\
-  \midrule
-  MC Dropout & $4 \times 10^{-4}$ & $-0.815$ {\color{alertRed}$\downarrow$ inverted} \\
-  \textbf{TTA} & $8.3 \times 10^{-3}$ & $\mathbf{+0.614}$ {\color{successGreen}$\uparrow$ useful} \\
-  \bottomrule
-\end{tabular}
-\end{center}
 
-\vspace{6pt}
-TTA produces $20-50\times$ higher variance than MC Dropout and a positive
-correlation with prediction error—meaning \textit{high uncertainty reliably
-flags wrong predictions}. MC Dropout's inverted correlation makes it unsuitable
-as a standalone uncertainty estimator for this task.
-\end{tcolorbox}
-
-\end{column}
-
-%%------------------------------------------------------------
-%%  COLUMN 3 — Results & Conclusions
-%%------------------------------------------------------------
-\begin{column}{0.315\textwidth}
-\begin{minipage}{0.93\textwidth}
-
-%% -- Main Results -------------------------------------------
+%% ── ABLATION STUDY ────────────────────────────────────────
 \begin{tcolorbox}[sectiontitle]
-  \vphantom{Ag} Results — Bolivia Test Set (OOD)
+  \vphantom{Ag} Ablation Study \textemdash{} Bolivia OOD Test Set
 \end{tcolorbox}
 \vspace{4pt}
 \begin{tcolorbox}[resultbox]
 \begin{center}
-\begin{tabular}{@{}lcccc@{}}
+\begin{tabular}{@{}lcccl@{}}
   \toprule
-  \textbf{Model} & \textbf{IoU} & \textbf{F1} & \textbf{ECE} & \textbf{CI 95\%} \\
+  \textbf{Variant} & \textbf{HAND treatment} & \textbf{IoU} & \textbf{ECE} &
+  \textbf{$\Delta$IoU vs A} \\
   \midrule
-  \color{alertRed} Otsu thresh. & 0.582 & 0.736 & — & — \\
-  \color{alertRed} Baseline U-Net & 0.421 & 0.593 & — & — \\
+  A — SAR-only      & None              & 0.408 & —     & baseline \\
+  B — HAND concat   & Encoder input     & 0.441 & —     & $+3.3$ pp \\
+  C — HAND gate     & Physics gate      & 0.662 & —     & $+25.4$ pp \\
+  D — Gate + MC     & Physics gate      & 0.690 & 0.078 & $+28.2$ pp \\
   \midrule
-  Variant A & 0.408 & 0.580 & — & [0.24, 0.57] \\
-  Variant B & 0.441 & 0.612 & — & — \\
-  Variant C & 0.662 & 0.796 & — & [0.45, 0.78] \\
-  Variant D & 0.690 & 0.816 & 0.078 & [0.46, 0.77] \\
+  Otsu (unsup.)     & None              & 0.582 & —     & — \\
+  U-Net baseline    & None              & 0.421 & —     & — \\
   \midrule
-  C$_\text{full}$ & 0.706 & 0.827 & — & — \\
+  C\textsubscript{full}\,$^\dagger$ & Physics gate & 0.706 & — & $+29.8$ pp \\
   \rowcolor{dkuLightTeal}
-  \textbf{D$_\text{full}$} & \textbf{0.724} & \textbf{0.840} & \textbf{0.063} & \textbf{[0.50, 0.81]} \\
+  \textbf{D\textsubscript{full}}\,$^\dagger$ & \textbf{Physics gate}
+  & \textbf{0.724} & \textbf{0.063} & $\mathbf{+31.6}$ \textbf{pp} \\
   \bottomrule
 \end{tabular}
 \end{center}
 \vspace{4pt}
-{\footnotesize Bootstrap CIs from 1,000 resamples. ECE after temperature scaling ($T=0.100$).}
+{\footnotesize $^\dagger$Full retraining: patience=25, 120 epoch max. \quad
+Bootstrap 95\% CI (1,000 resamples): D\textsubscript{full} [0.498, 0.811].
+\quad All metrics on Bolivia OOD test set; 15 chips; 2.87 M valid pixels.}
+
+\vspace{6pt}
+\textbf{Uncertainty benchmarks (Bolivia OOD, Variant D\textsubscript{full}):}
+\begin{center}
+\begin{tabular}{@{}lccl@{}}
+  \toprule
+  Estimator & $\bar{\sigma}^2$ mean & $r(\sigma^2, \text{error})$ & AURC \\
+  \midrule
+  MC Dropout & $4\!\times\!10^{-4}$ & $-0.815$ \color{alertRed}{(inv.)} & 0.517 \\
+  \textbf{TTA (D$_4$)} & $8.3\!\times\!10^{-3}$ & $\mathbf{+0.614}$ & \textbf{0.421} \\
+  \bottomrule
+\end{tabular}
+\end{center}
 \end{tcolorbox}
 
-\vspace{10pt}
+\vspace{8pt}
 
-%% -- Calibration --------------------------------------------
+%% ── CALIBRATION ───────────────────────────────────────────
 \begin{tcolorbox}[sectiontitle]
   \vphantom{Ag} Calibration
 \end{tcolorbox}
 \vspace{4pt}
 \begin{tcolorbox}[posterbox]
-Temperature scaling ($T = 0.100$, sharpening) reduces
-\textbf{ECE from 0.363 to 0.063}—a \textbf{78.6\%} reduction.
-Post-calibration reliability curve closely follows the diagonal, confirming
-well-calibrated flood probability outputs.\\[6pt]
-
-\textbf{AURC} (selective prediction): $0.5168$\\
-\textit{Selective abstention on uncertain pixels improves accuracy, confirming
-that uncertainty is meaningful for triage.}
+\begin{center}
+  \includegraphics[width=0.97\linewidth]{calibration.jpeg}
+  \captionof{figure}{\textbf{Fig. 5} Reliability diagrams: pre-calibration
+  (ECE$=0.363$, raw sigmoid $T{=}1.0$) and post-calibration (ECE$=0.063$ via
+  temperature scaling $T{=}0.10$). The HAND gate compresses logit dynamic range,
+  causing systematic under-confidence; temperature scaling ($\times 10$) restores
+  calibrated probabilities. Brier score improves 72.8\%.}
+\end{center}
 \end{tcolorbox}
 
-\vspace{10pt}
+\vspace{8pt}
 
-%% -- Population Exposure ------------------------------------
+%% ── THRESHOLD & TRAINING ──────────────────────────────────
+\begin{tcolorbox}[posterbox]
+\begin{columns}[T]
+  \begin{column}{0.495\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{threshold.png}
+    \captionof{figure}{\textbf{Fig. 6} Optimal decision threshold $\tau^*$ per
+    variant ($\tau^*{=}0.5$ for physics-gated models; $\tau^*{\approx}0.80$ for
+    A \& B confirms gate eliminates false positives on elevated terrain). Bayesian
+    probability $0.5$ boundary.}
+  \end{column}
+  \begin{column}{0.495\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{hand_gate.jpeg}
+    \captionof{figure}{\textbf{Fig. 7} HAND gate function $\alpha(h){=}
+    \exp(-h/50)$ and geomorphic cross-section: valley floor ($h{=}0$, $\alpha
+    {=}1.0$) to hillslope ($h{=}100$\,m, $\alpha{\approx}0.13$) to ridge
+    ($h{>}150$\,m, $\alpha{<}0.05$).}
+  \end{column}
+\end{columns}
+\end{tcolorbox}
+
+\vspace{8pt}
+
+%% ── TRAINING DYNAMICS ─────────────────────────────────────
 \begin{tcolorbox}[sectiontitle]
-  \vphantom{Ag} Population Exposure (Bolivia)
+  \vphantom{Ag} Training Dynamics \textemdash{} All Variants
 \end{tcolorbox}
 \vspace{4pt}
 \begin{tcolorbox}[posterbox]
-Flood predictions are intersected with WorldPop population rasters
-(not a model input; used post-prediction only).
-
-\vspace{6pt}
 \begin{center}
-\begin{tabular}{@{}lrr@{}}
-  \toprule
-  \textbf{Zone} & \textbf{People} & \textbf{Share} \\
-  \midrule
-  Total predicted flood & 7,840,200 & 100\% \\
-  High uncertainty ($\tau=0.01$) & 1,210,400 & 15.4\% \\
-  Confident flood & 6,629,800 & 84.6\% \\
-  \bottomrule
-\end{tabular}
+  \includegraphics[width=0.97\linewidth]{training.jpeg}
+  \captionof{figure}{\textbf{Fig. 8} Training dynamics (validation loss and IoU)
+  across all variants; val split = Paraguay. Variants C \& D terminate early
+  (epochs 15–16) under patience=10 due to noisy IoU during gate–decoder
+  co-adaptation. D\textsubscript{full} (120 ep, patience=25) fully converges;
+  Bolivia test IoU (${\approx}0.690$) exceeds Paraguay val IoU (${\approx}0.600$),
+  confirming positive OOD transfer.}
+\end{center}
+\end{tcolorbox}
+
+\end{column}
+
+%%------------------------------------------------------------
+%%  COLUMN 3 — Discussion + Conclusions + References
+%%------------------------------------------------------------
+\begin{column}{0.315\textwidth}
+\begin{minipage}{0.93\textwidth}
+
+%% ── DISCUSSION ────────────────────────────────────────────
+\begin{tcolorbox}[sectiontitle]
+  \vphantom{Ag} Discussion
+\end{tcolorbox}
+\vspace{4pt}
+\begin{tcolorbox}[posterbox]
+
+\textbf{I. Why the gate dominates concatenation (+22.1 pp).} With only 431
+training chips, gradient-based learning cannot reliably discover the HAND–flood
+anti-correlation from raw input channels (Variant B). The gate encodes this
+constraint unconditionally as $\alpha(h){\in}(0,1]$, suppressing logits wherever
+terrain physics preclude inundation regardless of SAR signal, and thereby providing
+an OOD-stable inductive bias.
+
+\vspace{7pt}
+\textbf{II. MC Dropout failure mode (novel finding).} MC Dropout variance
+($\bar{\sigma}^2{=}4{\times}10^{-4}$) is three orders of magnitude below
+actionable thresholds, and its uncertainty–error correlation is inverted
+($r{=}{-}0.815$, AURC$=0.517{\approx}$random). The gate collapses all logit
+magnitudes into $[0,\alpha\cdot L]$, eliminating stochastic mask diversity
+across $T{=}20$ passes. TTA, which perturbs input geometry rather than model
+weights, is immune to this mechanism ($\bar{\sigma}^2{=}8.3{\times}10^{-3}$,
+$r{=}+0.614$, AURC$=0.421$). This generalises to \textit{any} ML system with
+output-space physics constraints.
+
+\vspace{7pt}
+\textbf{III. Calibration and deployment.} The gate compresses logits, producing
+systematic under-confidence (pre-calibration ECE$=0.363$, Brier$=0.195$).
+Temperature scaling ($T{=}0.10$) restores ECE$=0.063$ and Brier$=0.053$
+($-78.6\%$ and $-72.8\%$ respectively). Physics-gated models \textit{must not}
+be deployed without post-hoc calibration. Optimal decision threshold $\tau^*{=}0.5$
+confirms the calibrated probabilities recover a proper Bayesian interpretation.
+
+\vspace{7pt}
+\textbf{IV. Population exposure triage.} Of the 7.84 M people within the
+D\textsubscript{full} flood extent (Bolivia test set, WorldPop 2020), TTA
+uncertainty flags \textbf{1.21 M people (15.4\%)} in ambiguous boundary zones
+where $\sigma^2{>}0.01$. These zones should be prioritised for field verification
+as they represent the highest marginal benefit of ground-truth acquisition relative
+to model cost.
+
+\vspace{7pt}
+\textbf{V. Limitations.} Evaluation limited to one OOD event (Bolivia 2018
+flooding). HAND at 90\,m resampled to 10\,m introduces sub-pixel terrain artefacts.
+Wet-snow and urban targets may still confuse the SAR signal even after gating.
+Bootstrap CIs (${\sim}30$\,pp wide) reflect the small 15-chip test set.
+
+\vspace{8pt}
+\begin{center}
+  \includegraphics[width=0.97\linewidth]{exposure.png}
+  \captionof{figure}{\textbf{Fig. 9} Population exposure (WorldPop 2020 $\times$
+  D\textsubscript{full} flood extent) and TTA-based uncertainty triage. Blue:
+  high-confidence flood; orange: field-verify zones (1.21 M people, 15.4\%).}
 \end{center}
 
-\vspace{6pt}
-\textbf{Actionable insight:} The 1.21 million people in uncertain zones can be
-flagged for priority ground-truth verification or additional SAR acquisitions.
-Confident predictions (6.63M) support immediate evacuation routing.
 \end{tcolorbox}
 
 \vspace{10pt}
 
-%% -- HAND Gate Analysis -------------------------------------
-\begin{tcolorbox}[sectiontitle]
-  \vphantom{Ag} HAND Gate Analysis
-\end{tcolorbox}
-\vspace{4pt}
-\begin{tcolorbox}[posterbox]
-\begin{itemize}[leftmargin=1.2em,itemsep=3pt]
-  \item HAND gating (Variant C vs A): \textbf{+25.5 pp IoU} improvement.
-  \item Gate $\alpha = \exp(-h/50)$: near-unity at valley floors ($h < 30$ m),
-    suppresses predictions on ridges ($h > 150$ m, $\alpha < 0.05$).
-  \item Per-chip analysis: high-HAND chips (elevated terrain) benefit most from
-    gating; low-HAND chips already well-captured by SAR alone.
-  \item Variant B (HAND concatenated to encoder) underperforms C (gate),
-    confirming that multiplicative gating is more effective than additive fusion.
-\end{itemize}
-\end{tcolorbox}
-
-\vspace{10pt}
-
-%% -- Conclusions --------------------------------------------
+%% ── CONCLUSIONS ───────────────────────────────────────────
 \begin{tcolorbox}[sectiontitle]
   \vphantom{Ag} Conclusions
 \end{tcolorbox}
 \vspace{4pt}
-\begin{tcolorbox}[posterbox]
-\begin{itemize}[leftmargin=1.2em,itemsep=3pt]
-  \item[\color{successGreen}\textbf{1.}]
-    \textbf{HAND gating substantially improves flood mapping}: +25 pp IoU over
-    SAR-only; the physical prior is more effective as a multiplicative gate than
-    as a concatenated input.
-  \item[\color{successGreen}\textbf{2.}]
-    \textbf{Calibration matters}: Raw deep model is severely overconfident
-    (ECE=0.363); temperature scaling reduces to 0.063—suitable for probabilistic
-    decision support.
-  \item[\color{successGreen}\textbf{3.}]
-    \textbf{TTA is the right UQ method for this task}: Variance $20\text{–}50\times$
-    MC Dropout, positive error correlation ($r=+0.614$), directly actionable for
-    uncertain pixel flagging.
-  \item[\color{dkuGold}\textbf{4.}]
-    \textbf{Limitations}: MC Dropout produces inverted uncertainty signal;
-    model generalises to Bolivia but performance on other OOD regions unknown.
-  \item[\color{highlightBlue}\textbf{5.}]
-    \textbf{Future work}: Multi-temporal fusion, optical data fusion, end-to-end
-    calibration training, sub-national exposure disaggregation.
+\begin{tcolorbox}[findingbox]
+\begin{itemize}[leftmargin=1.4em,itemsep=4pt,topsep=2pt]
+  \item[\color{successGreen}\large\textbf{1.}]
+    \textbf{Encoding terrain physics as a hard architectural gate}—not as a
+    learned input—yields a +22.1 pp OOD IoU gain (0.408 → 0.724). The gate
+    is globally valid, requiring no per-region retraining.
+
+  \item[\color{successGreen}\large\textbf{2.}]
+    \textbf{Temperature scaling is non-optional} for physics-gated flood models:
+    the gate compresses logit range, causing severe under-confidence (ECE$=0.363$)
+    that is fully corrected post-hoc (ECE$=0.063$, $-78.6\%$).
+
+  \item[\color{successGreen}\large\textbf{3.}]
+    \textbf{TTA over D$_4$ is the correct uncertainty estimator} for gated
+    architectures: $r{=}+0.614$, variance $20{\text{–}}50\times$ MC Dropout.
+    MC Dropout's inverted signal ($r{=}{-}0.815$) is a structural artifact of
+    gate-induced logit suppression—\textit{a novel failure mode requiring
+    disclosure before operational deployment}.
+
+  \item[\color{dkuGold}\large\textbf{4.}]
+    \textbf{Uncertainty-aware exposure triage} is operationally feasible:
+    1.21 M of 7.84 M at-risk people (15.4\%) can be flagged for field
+    verification using TTA $\sigma^2 > 0.01$, reducing verification cost by
+    focusing limited resources on uncertain flood boundaries.
+
+  \item[\color{highlightBlue}\large\textbf{5.}]
+    \textbf{Next steps:} Multi-event OOD evaluation (monsoon, snowmelt, storm
+    surge); ensemble uncertainty replacing MC Dropout; automated HAND pipeline
+    for near-real-time deployment; uncertainty-aware evacuation routing dashboard.
 \end{itemize}
 \end{tcolorbox}
 
 \vspace{10pt}
 
-%% -- Acknowledgements ----------------------------------------
+%% ── SELECTED REFERENCES ───────────────────────────────────
+\begin{tcolorbox}[sectiontitle]
+  \vphantom{Ag} Selected References
+\end{tcolorbox}
+\vspace{4pt}
+\begin{tcolorbox}[
+  enhanced, boxrule=0pt, frame hidden,
+  colback=dkuLightGrey, arc=4pt,
+  left=10pt, right=10pt, top=6pt, bottom=6pt,
+  fontupper=\scriptsize,
+]
+\begin{enumerate}[leftmargin=1.4em,itemsep=2pt,label={[\arabic*]}]
+  \item Bonafilia et al. (2020). Sen1Floods11: a georeferenced dataset to train
+    and test deep learning flood algorithms for Sentinel-1.
+    \textit{Proc. CVPRW}, pp.\,210--211.
+  \item Yamazaki et al. (2019). MERIT Hydro: a high-resolution global hydrography
+    map. \textit{Water Resour. Res.}, 55, 5053--5073.
+  \item Guo et al. (2017). On calibration of modern neural networks.
+    \textit{Proc. ICML}, PMLR 70, 1321--1330.
+  \item Gal \& Ghahramani (2016). Dropout as a Bayesian approximation.
+    \textit{Proc. ICML}, PMLR 48, 1050--1059.
+  \item Stevens et al. (2015). Disaggregating census data for population
+    mapping using random forests with remotely-sensed and ancillary data.
+    \textit{PLOS ONE}, 10(2), e0107042.
+\end{enumerate}
+\end{tcolorbox}
+
+\vspace{8pt}
+
+%% ── Acknowledgements ──────────────────────────────────────
 \begin{tcolorbox}[
   enhanced, boxrule=0pt, frame hidden,
   colback=dkuLightTeal, arc=4pt,
   left=10pt, right=10pt, top=6pt, bottom=6pt,
   fontupper=\footnotesize,
 ]
-\textbf{Acknowledgements:} The author thanks Prof. Dongmian Zou for mentorship
-throughout the Signature Work. Computations used the DKUCC HPC cluster. Data:
-Sen1Floods11 (\textit{Bonafilia et al., 2020}), MERIT Hydro HAND
-(\textit{Yamazaki et al., 2019}), WorldPop (\textit{Stevens et al., 2015}).
+\textbf{Acknowledgements.} Prof. Dongmian Zou (mentorship). DKUCC HPC cluster
+(NVIDIA L20). Open data: Sen1Floods11, MERIT Hydro, WorldPop 2020, ESA
+Copernicus Sentinel-1.
 \end{tcolorbox}
 
 \end{minipage}
@@ -658,37 +604,40 @@ Sen1Floods11 (\textit{Bonafilia et al., 2020}), MERIT Hydro HAND
 
 \end{columns}
 
-\vspace{1.2cm}
+\vspace{1.0cm}
 
 %% ===========================================================
 %%  FOOTER BAR
 %% ===========================================================
 \begin{tikzpicture}[remember picture, overlay]
   \fill[dkuTeal] (current page.south west)
-    rectangle ([yshift=4.8cm]current page.south east);
-  \fill[dkuDarkTeal] ([yshift=4.8cm]current page.south west)
-    rectangle ([yshift=5.3cm]current page.south east);
+    rectangle ([yshift=4.5cm]current page.south east);
+  \fill[dkuDarkTeal] ([yshift=4.5cm]current page.south west)
+    rectangle ([yshift=5.0cm]current page.south east);
 \end{tikzpicture}
 
+\vspace{0.3cm}
 \begin{columns}[c]
   \begin{column}{0.35\textwidth}
-    \hspace{1.8cm}
+    \hspace{1.6cm}
     {\color{white}\small
-      \textbf{Bouchra Daddaoui} \;|\; Computation and Design, DKU\\[2pt]
-      \url{bd101@duke.edu} \;|\; Class of 2026}
+      \textbf{Bouchra Daddaoui} \;|\; Computation \& Design, DKU\\[2pt]
+      Data: Sentinel-1 SAR (ESA Copernicus) $\cdot$ Sen1Floods11 (Bonafilia et al. 2020)\\
+      MERIT Hydro HAND (Yamazaki et al. 2019) $\cdot$ WorldPop 2020 (Stevens et al. 2015)}
   \end{column}
   \begin{column}{0.30\textwidth}
     \centering
-    {\color{white}\large\bfseries
-      \textbf{Signature Work — Class of 2026}}\\[2pt]
-    {\color{white!80}\small Duke Kunshan University}
+    {\color{white}\large\bfseries Signature Work — Class of 2026}\\[2pt]
+    {\color{white!80}\small
+      This research was supported by DKU Signature Work grants $\cdot$
+      Duke Kunshan University Computing Cluster (DKUCC) NVIDIA $\cdot$
+      ESA Copernicus Open Access Hub}
   \end{column}
   \begin{column}{0.35\textwidth}
     \raggedleft
-    \hspace{0pt}
     {\color{white}\small
-      TerrainFlood-UQ | Sentinel-1 SAR Flood Segmentation\\[2pt]
-      Mentor: \textbf{Prof. Dongmian Zou, Ph.D.}\hspace{1.8cm}}
+      TerrainFlood-UQ $|$ Physics-Informed SAR Flood Segmentation\\[2pt]
+      Mentor: \textbf{Prof. Dongmian Zou, Ph.D.}\hspace{1.6cm}}
   \end{column}
 \end{columns}
 

@@ -107,8 +107,7 @@ def add_panel_label(ax, label, x=0.02, y=0.97, size=10, color="white",
 
 
 def colorbar(fig, im, ax, label="", orientation="vertical"):
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
-    divider = __import__("mpl_toolkits.axes_grid1", fromlist=["make_axes_locatable"])
+    """Kept for back-compat; prefer add_flood_legend / add_var_legend."""
     from mpl_toolkits.axes_grid1 import make_axes_locatable
     div = make_axes_locatable(ax)
     if orientation == "vertical":
@@ -119,6 +118,75 @@ def colorbar(fig, im, ax, label="", orientation="vertical"):
     cb.set_label(label, fontsize=7)
     cb.ax.tick_params(labelsize=6.5)
     return cb
+
+
+# ── Legend-patch helpers (replace gradient colorbars with labelled squares) ──
+
+def add_flood_legend(ax, loc="lower right", dark_bg=True):
+    """Small square legend for flood probability maps."""
+    fc = "#1A252F" if dark_bg else "white"
+    tc = "white"  if dark_bg else "black"
+    patches = [
+        mpatches.Patch(facecolor="#FFFFFF", edgecolor="#888888", label="Dry  (p \u2264 0.10)"),
+        mpatches.Patch(facecolor="#AED6F1", edgecolor="none",    label="Low  (p 0.10\u20130.30)"),
+        mpatches.Patch(facecolor="#2980B9", edgecolor="none",    label="Flood  (p 0.30\u20130.70)"),
+        mpatches.Patch(facecolor="#0B2545", edgecolor="none",    label="High flood  (p > 0.70)"),
+    ]
+    leg = ax.legend(handles=patches, loc=loc, fontsize=7,
+                    framealpha=0.88, facecolor=fc, edgecolor="#555555",
+                    labelcolor=tc, handlelength=1.2, handleheight=1.2,
+                    borderpad=0.6, labelspacing=0.4)
+    return leg
+
+
+def add_var_legend(ax, loc="lower right", dark_bg=True):
+    """Small square legend for predictive-variance (uncertainty) maps."""
+    fc = "#1A252F" if dark_bg else "white"
+    tc = "white"  if dark_bg else "black"
+    patches = [
+        mpatches.Patch(facecolor="#FDFEFE", edgecolor="#888888", label="Low  (\u03c3\u00b2 < 1\u00d710\u207b\u00b3)"),
+        mpatches.Patch(facecolor="#F9E79F", edgecolor="none",    label="Moderate  (1\u20135\u00d710\u207b\u00b3)"),
+        mpatches.Patch(facecolor="#F39C12", edgecolor="none",    label="High  (5\u201310\u00d710\u207b\u00b3)"),
+        mpatches.Patch(facecolor="#6E2B2B", edgecolor="none",    label="Very high  (> 10\u207b\u00b2)"),
+    ]
+    leg = ax.legend(handles=patches, loc=loc, fontsize=7,
+                    framealpha=0.88, facecolor=fc, edgecolor="#555555",
+                    labelcolor=tc, handlelength=1.2, handleheight=1.2,
+                    borderpad=0.6, labelspacing=0.4)
+    return leg
+
+
+def add_div_legend(ax, loc="lower right", dark_bg=True):
+    """Small square legend for diverging SAR-difference maps."""
+    fc = "#1A252F" if dark_bg else "white"
+    tc = "white"  if dark_bg else "black"
+    patches = [
+        mpatches.Patch(facecolor="#1A5276", edgecolor="none",    label="VV \u2212 VH < 0  (water-like)"),
+        mpatches.Patch(facecolor="#FDFEFE", edgecolor="#888888", label="VV \u2212 VH \u2248 0  (neutral)"),
+        mpatches.Patch(facecolor="#922B21", edgecolor="none",    label="VV \u2212 VH > 0  (land-like)"),
+    ]
+    leg = ax.legend(handles=patches, loc=loc, fontsize=7,
+                    framealpha=0.88, facecolor=fc, edgecolor="#555555",
+                    labelcolor=tc, handlelength=1.2, handleheight=1.2,
+                    borderpad=0.6, labelspacing=0.4)
+    return leg
+
+
+def add_chip_size_legend(ax, loc="lower left", dark_bg=False):
+    """Chip marker legend for scatter on study-area map."""
+    fc = "#1A252F" if dark_bg else "white"
+    tc = "white"  if dark_bg else "black"
+    patches = [
+        mpatches.Patch(facecolor="#0B2545", edgecolor="white", label="High flood coverage"),
+        mpatches.Patch(facecolor="#2980B9", edgecolor="white", label="Moderate coverage"),
+        mpatches.Patch(facecolor="#AED6F1", edgecolor="white", label="Low coverage"),
+    ]
+    leg = ax.legend(handles=patches, loc=loc, fontsize=7,
+                    framealpha=0.88, facecolor=fc, edgecolor="#555555",
+                    labelcolor=tc, title="Flood coverage",
+                    title_fontsize=7.5, handlelength=1.2, handleheight=1.2,
+                    borderpad=0.6, labelspacing=0.4)
+    return leg
 
 
 # ── Load chip data ────────────────────────────────────────────────────────────
@@ -353,16 +421,8 @@ def map01_study_area():
                  fontfamily="DejaVu Sans Mono",
                  linespacing=1.6)
 
-    # Colorbar for scatter
-    sm = plt.cm.ScalarMappable(cmap=FLOOD_CMAP,
-                                norm=Normalize(vmin=0, vmax=1))
-    sm.set_array([])
-    cb_ax = fig.add_axes([0.57, 0.25, 0.16, 0.012])
-    cb = fig.colorbar(sm, cax=cb_ax, orientation="horizontal")
-    cb.set_label("Flood coverage (normalised)", color="white", fontsize=7)
-    cb.ax.tick_params(labelsize=6.5, colors="white")
-    cb.ax.xaxis.label.set_color("white")
-    cb.outline.set_edgecolor("white")
+    # Legend patches for scatter (replaces gradient colorbar)
+    add_chip_size_legend(ax_ins, loc="lower left", dark_bg=False)
 
     plt.savefig(OUT / "map01_study_area.png")
     plt.close()
@@ -420,15 +480,8 @@ def map02_prediction_mosaic():
                 ha="center", va="bottom", color="#AED6F1",
                 path_effects=[pe.withStroke(linewidth=1.5, foreground="black")])
 
-    # Colorbar
-    sm = plt.cm.ScalarMappable(cmap=FLOOD_CMAP, norm=Normalize(0, 1))
-    sm.set_array([])
-    cbar_ax = fig.add_axes([0.25, 0.03, 0.5, 0.015])
-    cb = fig.colorbar(sm, cax=cbar_ax, orientation="horizontal")
-    cb.set_label("Flood Probability  (0 = dry, 1 = flooded)",
-                 color="white", fontsize=9)
-    cb.ax.tick_params(labelsize=8, colors="white")
-    cb.outline.set_edgecolor("white")
+    # Legend patches (replaces gradient colorbar)
+    add_flood_legend(axes[2, 2], loc="lower center", dark_bg=True)
 
     plt.savefig(OUT / "map02_prediction_mosaic.png", facecolor="#0D1117")
     plt.close()
@@ -506,23 +559,9 @@ def map03_uncertainty_compare():
                  fontsize=9.5, color="white", fontweight="bold",
                  va="center", rotation=90)
 
-    # Colorbars
-    sm_p  = plt.cm.ScalarMappable(cmap=FLOOD_CMAP, norm=Normalize(0,1))
-    sm_u  = plt.cm.ScalarMappable(cmap=UNC_CMAP,   norm=Normalize(0,0.003))
-    sm_p.set_array([]); sm_u.set_array([])
-
-    cbar1 = fig.add_axes([0.18, 0.04, 0.28, 0.013])
-    cb1 = fig.colorbar(sm_p, cax=cbar1, orientation="horizontal")
-    cb1.set_label("Flood probability", color="white", fontsize=8.5)
-    cb1.ax.tick_params(colors="white", labelsize=7.5)
-    cb1.outline.set_edgecolor("white")
-
-    cbar2 = fig.add_axes([0.56, 0.04, 0.28, 0.013])
-    cb2 = fig.colorbar(sm_u, cax=cbar2, orientation="horizontal",
-                       format="%.4f")
-    cb2.set_label("Predictive variance", color="white", fontsize=8.5)
-    cb2.ax.tick_params(colors="white", labelsize=7.5)
-    cb2.outline.set_edgecolor("white")
+    # Legend patches for probability and variance (replaces gradient colorbars)
+    add_flood_legend(axes[0, 2], loc="lower center", dark_bg=True)
+    add_var_legend(axes[1, 2],   loc="lower center", dark_bg=True)
 
     fig.suptitle(
         "Uncertainty Quantification  —  TTA (D₄, 8 augmentations) vs Monte Carlo Dropout (T=20)\n"
@@ -557,27 +596,27 @@ def map04_best_chip_analysis():
 
     # ---- Panel A: TTA flood probability ----
     ax_a = fig.add_subplot(gs_main[0, 0])
-    im_a = ax_a.imshow(mean_tta, cmap=FLOOD_CMAP, vmin=0, vmax=1)
+    ax_a.imshow(mean_tta, cmap=FLOOD_CMAP, vmin=0, vmax=1)
     ax_a.set_xticks([]); ax_a.set_yticks([])
     add_panel_label(ax_a, "A", bg=TEAL)
     ax_a.set_title("Flood Probability (TTA mean)", color="white", fontsize=9.5)
-    colorbar(fig, im_a, ax_a, "P(flood)")
+    add_flood_legend(ax_a, loc="lower right", dark_bg=True)
 
     # ---- Panel B: TTA variance ----
     ax_b = fig.add_subplot(gs_main[0, 1])
     vmax = np.percentile(var_tta, 99)
-    im_b = ax_b.imshow(var_tta, cmap=UNC_CMAP, vmin=0, vmax=max(vmax, 1e-5))
+    ax_b.imshow(var_tta, cmap=UNC_CMAP, vmin=0, vmax=max(vmax, 1e-5))
     ax_b.set_xticks([]); ax_b.set_yticks([])
     add_panel_label(ax_b, "B", bg="#8B0000")
     ax_b.set_title("TTA Predictive Variance", color="white", fontsize=9.5)
-    colorbar(fig, im_b, ax_b, "σ² (TTA)")
+    add_var_legend(ax_b, loc="lower right", dark_bg=True)
 
     # ---- Panel C: MC variance ----
     ax_c = fig.add_subplot(gs_main[0, 2])
     if var_mc is not None:
         vmax_mc = np.percentile(var_mc, 99)
-        im_c = ax_c.imshow(var_mc, cmap=UNC_CMAP, vmin=0, vmax=max(vmax_mc, 1e-5))
-        colorbar(fig, im_c, ax_c, "σ² (MC)")
+        ax_c.imshow(var_mc, cmap=UNC_CMAP, vmin=0, vmax=max(vmax_mc, 1e-5))
+        add_var_legend(ax_c, loc="lower right", dark_bg=True)
     else:
         ax_c.text(0.5, 0.5, "MC data\nnot available",
                   ha="center", va="center", color="white",
@@ -769,8 +808,8 @@ def map05_sar_composite():
                    interpolation="bilinear")
     ax.set_xticks([]); ax.set_yticks([])
     add_panel_label(ax, "D", bg="#641E16")
-    ax.set_title("SAR Band Difference\n(VV − VH)", color="white", fontsize=10)
-    colorbar(fig, im, ax, "Diff (normalised)")
+    ax.set_title("SAR Band Difference\n(VV \u2212 VH)", color="white", fontsize=10)
+    add_div_legend(ax, loc="lower right", dark_bg=True)
 
     fig.suptitle(
         "SAR Imagery Analysis  —  Bolivia Flood Event (2018)  ·  Sentinel-1 C-Band\n"
@@ -828,9 +867,9 @@ def map06_exposure_map():
         ax.set_xticks([]); ax.set_yticks([])
         add_panel_label(ax, "A", bg=TEAL)
         ax.set_title("Flood Probability — All 15 Bolivia Chips\n"
-                     "D_full model  ·  TTA ensemble",
+                     "D_full model  \u00b7  TTA ensemble",
                      color="white", fontsize=10)
-        colorbar(fig, im, axes[0], "P(flood)", orientation="vertical")
+        add_flood_legend(ax, loc="lower right", dark_bg=True)
 
     # ── Panel B: Uncertainty (TTA variance) mosaic ──
     all_vars = []
@@ -862,7 +901,7 @@ def map06_exposure_map():
         ax.set_title("TTA Predictive Variance — All 15 Chips\n"
                      "High uncertainty = uncertain flood boundary",
                      color="white", fontsize=10)
-        colorbar(fig, im_v, axes[1], "σ² (TTA)", orientation="vertical")
+        add_var_legend(ax, loc="lower right", dark_bg=True)
 
     # ── Panel C: Exposure bar chart ──
     ax = axes[2]

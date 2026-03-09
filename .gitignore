@@ -39,8 +39,31 @@ results/gate_maps_*/*_gate.png
 task_ids.json
 run_summary.md
 
-# ─── Claude Code worktrees ────────────────────────────────────
-.claude/worktrees/
+# ─── Tool / IDE config (not part of the project) ─────────────
+.claude/
+CLAUDE.md
+
+# ─── Microsoft Office temp files ─────────────────────────────
+~$*
+*.tmp
+
+# ─── Paper build artefacts (LaTeX, previews, QA images) ───────
+paper/*.aux
+paper/*.lof
+paper/*.log
+paper/*.lot
+paper/*.out
+paper/*.toc
+paper/*_preview.pdf
+paper/poster.log
+paper/poster.zip
+paper/pslide-*.jpg
+paper/qa_*.jpg
+paper/slide-*.jpg
+
+# ─── Scratch images at repo root ──────────────────────────────
+Image2.png
+hand gate function*.png
 
 # ─── Conda / pip environments ─────────────────────────────────
 .conda/
